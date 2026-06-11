@@ -72,14 +72,15 @@
           <span>SYSTEM</span>
         </div>
 
-        <a href="#" class="nav-item" @click.prevent="openSettings">
+        <!-- ✅ THÊM MENU CÀI ĐẶT VÀO SIDEBAR -->
+        <router-link to="/app/settings" class="nav-item" :class="{ active: $route.path === '/app/settings' }">
           <span class="nav-icon">⚙️</span>
-          <span class="nav-text" v-show="!isCollapsed">Settings</span>
-        </a>
+          <span class="nav-text" v-show="!isCollapsed">Cài đặt</span>
+        </router-link>
 
         <a href="#" class="nav-item logout-item" @click.prevent="logout">
           <span class="nav-icon">🚪</span>
-          <span class="nav-text" v-show="!isCollapsed">Logout</span>
+          <span class="nav-text" v-show="!isCollapsed">Đăng xuất</span>
         </a>
       </nav>
     </aside>
@@ -107,7 +108,10 @@
                 <small>{{ displayRole }}</small>
               </div>
             </div>
+            <!-- ✅ THÊM MENU CÀI ĐẶT VÀO DROPDOWN -->
             <div class="dropdown-menu-custom" v-show="showUserMenu">
+              <router-link to="/app/change-password" class="dropdown-item">🔐 Đổi mật khẩu</router-link>
+              <router-link to="/app/settings" class="dropdown-item">⚙️ Cài đặt</router-link>
               <a href="#" @click.prevent="logout">🚪 Đăng xuất</a>
             </div>
           </div>
@@ -157,6 +161,7 @@ const userAvatar = computed(() => {
   return authStore.user?.avatar || defaultAvatar;
 });
 
+// ✅ Cập nhật currentPageTitle thêm settings
 const currentPageTitle = computed(() => {
   const titles = {
     '/app/dashboard': 'Dashboard',
@@ -164,7 +169,9 @@ const currentPageTitle = computed(() => {
     '/app/orders': 'Quản lý đơn hàng',
     '/app/products': 'Quản lý sản phẩm',
     '/app/inventory': 'Quản lý kho hàng',
-    '/app/reports': 'Báo cáo thống kê'
+    '/app/reports': 'Báo cáo thống kê',
+    '/app/change-password': 'Đổi mật khẩu',
+    '/app/settings': 'Cài đặt hệ thống'
   };
   return titles[route.path] || 'Trang chủ';
 });
@@ -191,7 +198,7 @@ const logout = () => {
 };
 
 const openSettings = () => {
-  alert('Tính năng đang phát triển');
+  router.push('/app/settings');
 };
 
 document.addEventListener('click', (e) => {

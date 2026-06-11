@@ -9,6 +9,8 @@ import OrderDetail from '@/views/orders/OrderDetail.vue';
 import ProductList from '@/views/products/ProductList.vue';
 import InventoryManage from '@/views/products/InventoryManage.vue';
 import Reports from '@/views/reports/Reports.vue';
+import ChangePassword from '@/views/profile/ChangePassword.vue';  // ✅ THÊM IMPORT
+import Settings from '@/views/profile/Settings.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 
 // ✅ Khai báo title cho từng route
@@ -28,7 +30,9 @@ const routes = [
       { path: 'orders/:id', component: OrderDetail, meta: { requiresAuth: true, title: 'Chi tiết đơn hàng' } },
       { path: 'products', component: ProductList, meta: { requiresAuth: true, title: 'Quản lý sản phẩm' } },
       { path: 'inventory', component: InventoryManage, meta: { requiresAuth: true, title: 'Quản lý kho hàng' } },
-      { path: 'reports', component: Reports, meta: { requiresAuth: true, requiresAdmin: true, title: 'Báo cáo thống kê' } }
+      { path: 'reports', component: Reports, meta: { requiresAuth: true, requiresAdmin: true, title: 'Báo cáo thống kê' } },
+      { path: 'change-password', component: ChangePassword, meta: { requiresAuth: true, title: 'Đổi mật khẩu' } },  // ✅ THÊM ROUTE
+      { path: 'settings', component: Settings, meta: { requiresAuth: true, title: 'Cài đặt' } }
     ]
   },
   // Route 404 - chuyển về trang chủ
