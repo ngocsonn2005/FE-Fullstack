@@ -1,5 +1,16 @@
 <template>
   <div class="landing-page" :class="{ loaded: pageLoaded }">
+    <Transition name="loading-fade">
+      <div v-if="isLoading" class="loading-screen" role="status" aria-live="polite">
+        <div class="loading-content">
+          <div class="loading-spinner" aria-hidden="true">
+            <span></span>
+          </div>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Navbar -->
     <nav class="navbar">
       <div class="container">
@@ -279,6 +290,9 @@ import { userApi, orderApi, productApi } from '@/api/axios';
 const router = useRouter();
 const activeSection = ref('home');
 const pageLoaded = ref(false);
+const isLoading = ref(true);
+let revealObserver;
+let loadingTimeout;
 
 // Dữ liệu thật
 const stats = ref({
@@ -343,6 +357,8 @@ async function loadRealData() {
       { id: 2, name: 'Samsung S24', quantity: 38, price: 22000000, revenue: 836000000 },
       { id: 3, name: 'Laptop Dell', quantity: 25, price: 18000000, revenue: 450000000 }
     ];
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -393,6 +409,37 @@ const handleScroll = () => {
   }
 };
 
+const setupRevealAnimations = () => {
+  const revealElements = document.querySelectorAll(
+    '.statistics .stat-card, .section-header, .feature-card, .preview-header, ' +
+    '.preview-grid > *, .cta-content, .footer-grid > *'
+  );
+
+  revealElements.forEach((element, index) => {
+    element.classList.add('reveal-item');
+    element.style.setProperty('--reveal-delay', `${(index % 6) * 70}ms`);
+  });
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    revealElements.forEach((element) => element.classList.add('is-visible'));
+    return;
+  }
+
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.12,
+    rootMargin: '0px 0px -40px'
+  });
+
+  revealElements.forEach((element) => revealObserver.observe(element));
+};
+
 function formatCurrency(value) {
   if (!value) return '0 ₫';
   if (value >= 1000000) {
@@ -405,8 +452,13 @@ function formatCurrency(value) {
 }
 
 onMounted(() => {
+  loadingTimeout = window.setTimeout(() => {
+    isLoading.value = false;
+  }, 1200);
+
   loadRealData();
   window.addEventListener('scroll', handleScroll);
+  setupRevealAnimations();
   requestAnimationFrame(() => {
     pageLoaded.value = true;
   });
@@ -414,6 +466,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  revealObserver?.disconnect();
+  window.clearTimeout(loadingTimeout);
 });
 </script>
 
@@ -428,6 +482,69 @@ onUnmounted(() => {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #faf9ff;
   color: #051a3e;
+  overflow-x: hidden;
+}
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(0, 82, 204, 0.1), transparent 45%),
+    rgba(250, 249, 255, 0.97);
+  backdrop-filter: blur(8px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  color: #003d9b;
+  font-weight: 600;
+}
+
+.loading-spinner {
+  width: 64px;
+  height: 64px;
+  padding: 5px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 20%, #0052cc 55%, #6366f1 100%);
+  box-shadow: 0 12px 35px rgba(0, 82, 204, 0.22);
+  animation: spin 0.9s linear infinite;
+}
+
+.loading-spinner span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #faf9ff;
+}
+
+.loading-fade-enter-active,
+.loading-fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.loading-fade-enter-from,
+.loading-fade-leave-to {
+  opacity: 0;
+}
+
+.reveal-item {
+  opacity: 0;
+  transform: translateY(34px);
+  transition:
+    opacity 0.7s ease var(--reveal-delay, 0ms),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+}
+
+.reveal-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .container {
@@ -447,6 +564,13 @@ onUnmounted(() => {
   border-bottom: 1px solid rgba(195, 198, 214, 0.3);
   z-index: 1000;
   padding: 16px 0;
+  transform: translateY(-100%);
+  transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+}
+
+.loaded .navbar {
+  transform: translateY(0);
+  box-shadow: 0 8px 30px rgba(5, 26, 62, 0.06);
 }
 
 .navbar .container {
@@ -531,6 +655,37 @@ onUnmounted(() => {
 .hero {
   padding: 120px 0 80px;
   background: radial-gradient(circle at 50% 50%, rgba(0, 82, 204, 0.05) 0%, #faf9ff 70%);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(4px);
+  opacity: 0.55;
+  animation: drift 9s ease-in-out infinite alternate;
+}
+
+.hero::before {
+  width: 320px;
+  height: 320px;
+  top: 70px;
+  right: -120px;
+  background: rgba(0, 82, 204, 0.12);
+}
+
+.hero::after {
+  width: 220px;
+  height: 220px;
+  bottom: -100px;
+  left: -70px;
+  background: rgba(99, 102, 241, 0.1);
+  animation-delay: -3s;
 }
 
 .hero .container {
@@ -544,6 +699,14 @@ onUnmounted(() => {
 .hero-content {
   flex: 1;
   min-width: 300px;
+  opacity: 0;
+  transform: translateX(-36px);
+  transition: opacity 0.75s ease 0.15s, transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.15s;
+}
+
+.loaded .hero-content {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .hero-badge {
@@ -625,6 +788,15 @@ onUnmounted(() => {
 .hero-image {
   flex: 1;
   min-width: 300px;
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.8s ease 0.3s, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s;
+}
+
+.loaded .hero-image {
+  opacity: 1;
+  transform: translateX(0);
+  animation: dashboardFloat 5s ease-in-out 1.2s infinite;
 }
 
 .image-wrapper {
@@ -881,6 +1053,12 @@ onUnmounted(() => {
 .feature-icon {
   font-size: 48px;
   margin-bottom: 20px;
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.feature-card:hover .feature-icon {
+  transform: translateY(-5px) scale(1.12) rotate(-4deg);
 }
 
 .feature-title {
@@ -1023,6 +1201,20 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #0052cc, #003d9b);
   color: white;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta::before {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  top: -280px;
+  left: -100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: drift 8s ease-in-out infinite alternate-reverse;
 }
 
 .cta-title {
@@ -1138,6 +1330,49 @@ onUnmounted(() => {
   padding-top: 30px;
   border-top: 1px solid #1e293b;
   font-size: 12px;
+}
+
+@keyframes dashboardFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(30px, 20px, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal-item,
+  .hero-content,
+  .hero-image,
+  .navbar {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Responsive */

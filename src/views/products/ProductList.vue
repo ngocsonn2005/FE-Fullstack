@@ -1,95 +1,82 @@
 <template>
   <div style="padding: 24px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-      <h2>🛍️ Quản lý sản phẩm</h2>
-      <button @click="showAddModal = true"
-        style="background:#1976d2;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px">
-        + Thêm sản phẩm
-      </button>
+      <h2>Quản lý sản phẩm</h2>
+      <a-button type="primary" @click="showAddModal = true">Thêm sản phẩm</a-button>
     </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:16px">
-      <input v-model="search" placeholder="🔍 Tìm kiếm sản phẩm..." @input="loadProducts"
-        style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px" />
-      <select v-model="filterCategory" @change="loadProducts"
-        style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px">
-        <option value="">Tất cả danh mục</option>
-        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-      </select>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <a-input
+        v-model:value="search"
+        placeholder="Tìm kiếm sản phẩm..."
+        allow-clear
+        @pressEnter="loadProducts"
+        @input="loadProducts"
+        style="flex:1;min-width:220px"
+      />
+      <a-select
+        v-model:value="filterCategory"
+        :options="categoryOptions"
+        placeholder="Tất cả danh mục"
+        @change="loadProducts"
+        style="width:220px"
+      />
     </div>
 
     <div v-if="error" style="background:#ffebee;color:#c62828;padding:12px;border-radius:6px;margin-bottom:16px">
-      ⚠️ {{ error }}
+      {{ error }}
     </div>
 
-    <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden">
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:#1976d2;color:white">
-            <th style="padding:12px;text-align:left">Ảnh</th>
-            <th style="padding:12px;text-align:left">Mã SP</th>
-            <th style="padding:12px;text-align:left">Tên sản phẩm</th>
-            <th style="padding:12px;text-align:left">Danh mục</th>
-            <th style="padding:12px;text-align:right">Giá nhập</th>
-            <th style="padding:12px;text-align:right">Giá bán</th>
-            <th style="padding:12px;text-align:center">Tồn kho</th>
-            <th style="padding:12px;text-align:center">Trạng thái</th>
-            <th style="padding:12px;text-align:center">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="9" style="text-align:center;padding:40px;color:#666">Đang tải...</td>
-          </tr>
-          <tr v-else-if="products.length === 0">
-            <td colspan="9" style="text-align:center;padding:40px;color:#666">Không có sản phẩm nào</td>
-          </tr>
-          <tr v-for="(p, i) in products" :key="p.id"
-            :style="{background: i%2===0 ? '#fafafa' : 'white', borderBottom:'1px solid #eee'}">
-            <!-- Ảnh thumbnail -->
-            <td style="padding:8px;text-align:center">
-              <img v-if="p.imageUrl" :src="p.imageUrl"
+    <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;padding:16px">
+      <a-table
+        :columns="columns"
+        :data-source="products"
+        :loading="{ spinning: loading, tip: 'Đang tải...' }"
+        row-key="id"
+        :pagination="{ pageSize: 8 }"
+        :locale="{ emptyText: 'Không có sản phẩm nào' }"
+        bordered
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'imageUrl'">
+            <div style="display:flex;justify-content:center">
+              <img v-if="record.imageUrl" :src="record.imageUrl"
                 style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #eee" />
               <div v-else
-                style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid #eee">
-                📦
+                style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;border:1px solid #eee;font-size:12px">
+                No image
               </div>
-            </td>
-            <td style="padding:12px;font-weight:bold;color:#1976d2">{{ p.code }}</td>
-            <td style="padding:12px">{{ p.name }}</td>
-            <td style="padding:12px;color:#666">{{ p.categoryName }}</td>
-            <td style="padding:12px;text-align:right">{{ formatPrice(p.costPrice) }}</td>
-            <td style="padding:12px;text-align:right;color:#2e7d32;font-weight:bold">{{ formatPrice(p.salePrice) }}</td>
-            <td style="padding:12px;text-align:center">
-              <span :style="{
-                background: p.isLowStock ? '#ffebee' : '#e8f5e9',
-                color: p.isLowStock ? '#c62828' : '#2e7d32',
-                padding:'4px 8px', borderRadius:'12px', fontSize:'13px'
-              }">{{ p.stockQuantity }} {{ p.isLowStock ? '⚠️' : '' }}</span>
-            </td>
-            <td style="padding:12px;text-align:center">
-              <span :style="{
-                background: p.isActive ? '#e8f5e9' : '#ffebee',
-                color: p.isActive ? '#2e7d32' : '#c62828',
-                padding:'4px 8px', borderRadius:'12px', fontSize:'13px'
-              }">{{ p.isActive ? 'Hoạt động' : 'Dừng' }}</span>
-            </td>
-            <td style="padding:12px;text-align:center">
-              <button @click="editProduct(p)"
-                style="background:#ff9800;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:12px">Sửa</button>
-              <button @click="deleteProduct(p)"
-                style="background:#f44336;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">Xóa</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'costPrice'">
+            {{ formatPrice(record.costPrice) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'salePrice'">
+            {{ formatPrice(record.salePrice) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'isActive'">
+            <a-tag :color="record.isActive ? 'success' : 'error'">
+              {{ record.isActive ? 'Hoạt động' : 'Dừng' }}
+            </a-tag>
+          </template>
+          <template v-else-if="column.dataIndex === 'actions'">
+            <a-space size="middle">
+              <a-button size="small" @click="editProduct(record)">Sửa</a-button>
+              <a-button type="primary" danger size="small" @click="deleteProduct(record)">Xóa</a-button>
+            </a-space>
+          </template>
+          <template v-else>
+            {{ record[column.dataIndex] }}
+          </template>
+        </template>
+      </a-table>
     </div>
 
     <!-- ── Modal Thêm / Sửa ── -->
     <div v-if="showAddModal"
       style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000">
       <div style="background:white;border-radius:12px;padding:32px;width:600px;max-height:92vh;overflow-y:auto">
-        <h3 style="margin:0 0 24px">{{ editingProduct ? '✏️ Sửa sản phẩm' : '➕ Thêm sản phẩm mới' }}</h3>
+        <h3 style="margin:0 0 24px">{{ editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới' }}</h3>
 
         <!-- Mã + Danh mục -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -140,7 +127,7 @@
 
         <!-- ── PHẦN ẢNH ── -->
         <div style="margin-top:20px;border:1px solid #e0e0e0;border-radius:8px;padding:16px;background:#fafafa">
-          <label style="display:block;font-weight:500;margin-bottom:12px;font-size:15px">🖼️ Hình ảnh sản phẩm</label>
+          <label style="display:block;font-weight:500;margin-bottom:12px;font-size:15px">Hình ảnh sản phẩm</label>
 
           <!-- Tabs chọn kiểu nhập ảnh -->
           <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -148,13 +135,13 @@
               :style="{padding:'6px 14px',border:'none',borderRadius:'6px',cursor:'pointer',fontSize:'13px',
                 background: imageTab==='url' ? '#1976d2' : '#eee',
                 color: imageTab==='url' ? 'white' : '#333'}">
-              🔗 Nhập link URL
+              Nhập link URL
             </button>
             <button @click="imageTab='upload'"
               :style="{padding:'6px 14px',border:'none',borderRadius:'6px',cursor:'pointer',fontSize:'13px',
                 background: imageTab==='upload' ? '#1976d2' : '#eee',
                 color: imageTab==='upload' ? 'white' : '#333'}">
-              📁 Tải ảnh lên
+              Tải ảnh lên
             </button>
           </div>
 
@@ -174,7 +161,7 @@
               style="border:2px dashed #1976d2;border-radius:8px;padding:24px;text-align:center;cursor:pointer;background:white;transition:background 0.2s"
               @mouseenter="e => e.target.style.background='#e3f2fd'"
               @mouseleave="e => e.target.style.background='white'">
-              <div style="font-size:32px;margin-bottom:8px">📁</div>
+              <div style="font-size:24px;margin-bottom:8px;color:#1976d2">Tải ảnh</div>
               <div style="color:#1976d2;font-weight:500">Click để chọn ảnh</div>
               <div style="color:#999;font-size:12px;margin-top:4px">hoặc kéo thả ảnh vào đây</div>
               <div style="color:#bbb;font-size:11px;margin-top:4px">JPG, PNG, WEBP – tối đa 5MB</div>
@@ -188,7 +175,7 @@
               <span style="font-weight:500;font-size:13px">Xem trước ảnh</span>
               <button @click="clearImage"
                 style="background:#f44336;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">
-                ✕ Xóa ảnh
+                Xóa ảnh
               </button>
             </div>
 
@@ -207,7 +194,7 @@
 
             <!-- Điều chỉnh kích cỡ -->
             <div style="background:white;border:1px solid #e0e0e0;border-radius:8px;padding:14px">
-              <div style="font-weight:500;font-size:13px;margin-bottom:12px;color:#555">⚙️ Chỉnh kích cỡ hiển thị</div>
+              <div style="font-weight:500;font-size:13px;margin-bottom:12px;color:#555">Chỉnh kích cỡ hiển thị</div>
 
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
@@ -249,7 +236,7 @@
               <!-- Nút đặt lại -->
               <button @click="resetImageSize"
                 style="margin-top:12px;background:#eee;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;color:#555">
-                🔄 Đặt lại kích cỡ mặc định
+                Đặt lại kích cỡ mặc định
               </button>
             </div>
           </div>
@@ -265,7 +252,7 @@
 
         <div v-if="formError"
           style="margin-top:12px;background:#ffebee;color:#c62828;padding:10px;border-radius:6px">
-          ⚠️ {{ formError }}
+          {{ formError }}
         </div>
 
         <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
@@ -282,7 +269,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed, h } from 'vue'
 import { productApi } from '../../api/axios.js'
 
 const products = ref([])
@@ -301,6 +288,23 @@ const form = ref({
   categoryId: '', imageUrl: '', description: '', minStockThreshold: 10
 })
 
+const categoryOptions = computed(() => [
+  { label: 'Tất cả danh mục', value: '' },
+  ...categories.value.map(cat => ({ label: cat.name, value: cat.id }))
+])
+
+const columns = [
+  { title: 'Ảnh', dataIndex: 'imageUrl', key: 'imageUrl', width: 120 },
+  { title: 'Mã SP', dataIndex: 'code', key: 'code', sorter: (a, b) => (a.code || '').localeCompare(b.code || '') },
+  { title: 'Tên sản phẩm', dataIndex: 'name', key: 'name', sorter: (a, b) => (a.name || '').localeCompare(b.name || '') },
+  { title: 'Danh mục', dataIndex: 'categoryName', key: 'categoryName' },
+  { title: 'Giá nhập', dataIndex: 'costPrice', key: 'costPrice', align: 'right' },
+  { title: 'Giá bán', dataIndex: 'salePrice', key: 'salePrice', align: 'right' },
+  { title: 'Tồn kho', dataIndex: 'stockQuantity', key: 'stockQuantity', align: 'center' },
+  { title: 'Trạng thái', dataIndex: 'isActive', key: 'isActive', align: 'center' },
+  { title: 'Thao tác', dataIndex: 'actions', key: 'actions', align: 'center' }
+]
+
 // ── Ảnh ──
 const imageTab   = ref('url')       // 'url' | 'upload'
 const previewUrl = ref('')          // URL hiển thị preview
@@ -317,7 +321,7 @@ watch(() => form.value.imageUrl, (val) => {
 const onFileSelect = (e) => {
   const file = e.target.files[0]
   if (!file) return
-  if (file.size > 5 * 1024 * 1024) { alert('❌ File quá lớn! Tối đa 5MB'); return }
+  if (file.size > 5 * 1024 * 1024) { alert('File quá lớn! Tối đa 5MB'); return }
   const reader = new FileReader()
   reader.onload = (ev) => {
     previewUrl.value  = ev.target.result
@@ -335,7 +339,7 @@ const onFileDrop = (e) => {
 
 const onImgError = () => {
   previewUrl.value = ''
-  if (imageTab.value === 'url') alert('❌ Không tải được ảnh từ link này!')
+  if (imageTab.value === 'url') alert('Không tải được ảnh từ link này!')
 }
 
 const clearImage = () => {
@@ -413,7 +417,7 @@ const saveProduct = async () => {
 
 const deleteProduct = async (p) => {
   if (!confirm(
-    `⚠️ Xác nhận xóa sản phẩm?\n\n` +
+    `Xác nhận xóa sản phẩm?\n\n` +
     `Tên: ${p.name}\n` +
     `Mã: ${p.code}\n\n` +
     `Sản phẩm sẽ bị xóa VĨNH VIỄN khỏi database!`
@@ -421,10 +425,10 @@ const deleteProduct = async (p) => {
   try {
     await productApi.delete(`/products/${p.id}`)
     products.value = products.value.filter(x => x.id !== p.id)
-    alert(`✅ Đã xóa sản phẩm "${p.name}" khỏi database!`)
+    alert(`Đã xóa sản phẩm "${p.name}" khỏi database!`)
   } catch (e) {
     const msg = e.response?.data?.message || e.response?.data || 'Lỗi khi xóa sản phẩm'
-    alert(`❌ ${msg}`)
+    alert(msg)
   }
 }
 
@@ -440,5 +444,10 @@ const closeModal = () => {
 onMounted(() => {
   loadCategories()
   loadProducts()
+  window.addEventListener('categories-updated', loadCategories)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('categories-updated', loadCategories)
 })
 </script>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
 
 // State
@@ -21,6 +21,11 @@ const statistics = ref({
   totalLocked: 0,
   totalDeleted: 0
 });
+
+// Pagination state
+const activeCurrentPage = ref(1);
+const deletedCurrentPage = ref(1);
+const itemsPerPage = ref(10);
 
 const formData = ref({
   username: '',
@@ -50,6 +55,41 @@ const filteredUsers = computed(() => {
   return users;
 });
 
+// Pagination computed properties
+const paginatedActiveUsers = computed(() => {
+  const start = (activeCurrentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredUsers.value.slice(start, end);
+});
+
+const paginatedDeletedUsers = computed(() => {
+  const start = (deletedCurrentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return deletedUsers.value.slice(start, end);
+});
+
+const totalActivePages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
+});
+
+const totalDeletedPages = computed(() => {
+  return Math.ceil(deletedUsers.value.length / itemsPerPage.value);
+});
+
+// Reset to first page when filters change
+const resetActivePage = () => {
+  activeCurrentPage.value = 1;
+};
+
+const resetDeletedPage = () => {
+  deletedCurrentPage.value = 1;
+};
+
+// Watch for filter changes
+watch([searchKeyword, filterRole], () => {
+  resetActivePage();
+});
+
 onMounted(async () => {
   await loadData();
   await loadStatistics();
@@ -65,6 +105,7 @@ async function loadActiveUsers() {
   try {
     const res = await api.get('/users');
     activeUsers.value = res.data;
+    resetActivePage();
   } catch (error) {
     console.error('Error loading active users:', error);
   }
@@ -74,6 +115,7 @@ async function loadDeletedUsers() {
   try {
     const res = await api.get('/users/deleted');
     deletedUsers.value = res.data;
+    resetDeletedPage();
   } catch (error) {
     console.error('Error loading deleted users:', error);
   }
@@ -240,6 +282,7 @@ function resetForm() {
 function resetFilters() {
   searchKeyword.value = '';
   filterRole.value = '';
+  resetActivePage();
 }
 
 function getRoleBadge(role) {
@@ -263,6 +306,77 @@ function closeDetailModal() {
 
 function handleImageError(event) {
   event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
+}
+
+// Pagination methods
+function goToActivePage(page) {
+  if (page >= 1 && page <= totalActivePages.value) {
+    activeCurrentPage.value = page;
+  }
+}
+
+function goToDeletedPage(page) {
+  if (page >= 1 && page <= totalDeletedPages.value) {
+    deletedCurrentPage.value = page;
+  }
+}
+
+function getActivePageNumbers() {
+  const total = totalActivePages.value;
+  const current = activeCurrentPage.value;
+  const delta = 2;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+}
+
+function getDeletedPageNumbers() {
+  const total = totalDeletedPages.value;
+  const current = deletedCurrentPage.value;
+  const delta = 2;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
 }
 </script>
 
@@ -462,7 +576,7 @@ function handleImageError(event) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in paginatedActiveUsers" :key="user.id">
               <td>
                 <span class="user-id">#{{ user.id }}</span>
               </td>
@@ -513,6 +627,57 @@ function handleImageError(event) {
           </tbody>
         </table>
       </div>
+      
+      <!-- Active Users Pagination -->
+      <div v-if="totalActivePages > 1" class="pagination-wrapper">
+        <div class="pagination-info">
+          Hiển thị {{ ((activeCurrentPage - 1) * itemsPerPage) + 1 }} - {{ Math.min(activeCurrentPage * itemsPerPage, filteredUsers.length) }} / {{ filteredUsers.length }}
+        </div>
+        <div class="pagination">
+          <button 
+            class="pagination-btn" 
+            :disabled="activeCurrentPage === 1"
+            @click="goToActivePage(activeCurrentPage - 1)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <button 
+            v-for="page in getActivePageNumbers()"
+            :key="page"
+            class="pagination-btn"
+            :class="{ active: page === activeCurrentPage, dots: page === '...' }"
+            :disabled="page === '...'"
+            @click="page !== '...' && goToActivePage(page)"
+          >
+            {{ page }}
+          </button>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="activeCurrentPage === totalActivePages"
+            @click="goToActivePage(activeCurrentPage + 1)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="pagination-page-size">
+          <span>Hiển thị</span>
+          <select v-model="itemsPerPage" @change="resetActivePage">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+          <span>dòng</span>
+        </div>
+      </div>
+      
       <div v-if="filteredUsers.length === 0" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -565,7 +730,7 @@ function handleImageError(event) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in deletedUsers" :key="user.id" class="deleted-row">
+            <tr v-for="user in paginatedDeletedUsers" :key="user.id" class="deleted-row">
               <td>
                 <span class="user-id deleted">#{{ user.id }}</span>
               </td>
@@ -601,6 +766,46 @@ function handleImageError(event) {
           </tbody>
         </table>
       </div>
+      
+      <!-- Deleted Users Pagination -->
+      <div v-if="totalDeletedPages > 1" class="pagination-wrapper">
+        <div class="pagination-info">
+          Hiển thị {{ ((deletedCurrentPage - 1) * itemsPerPage) + 1 }} - {{ Math.min(deletedCurrentPage * itemsPerPage, deletedUsers.length) }} / {{ deletedUsers.length }}
+        </div>
+        <div class="pagination">
+          <button 
+            class="pagination-btn" 
+            :disabled="deletedCurrentPage === 1"
+            @click="goToDeletedPage(deletedCurrentPage - 1)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          
+          <button 
+            v-for="page in getDeletedPageNumbers()"
+            :key="page"
+            class="pagination-btn"
+            :class="{ active: page === deletedCurrentPage, dots: page === '...' }"
+            :disabled="page === '...'"
+            @click="page !== '...' && goToDeletedPage(page)"
+          >
+            {{ page }}
+          </button>
+          
+          <button 
+            class="pagination-btn" 
+            :disabled="deletedCurrentPage === totalDeletedPages"
+            @click="goToDeletedPage(deletedCurrentPage + 1)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
       <div v-if="deletedUsers.length === 0" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <polyline points="3 6 5 6 21 6"/>
@@ -727,7 +932,6 @@ function handleImageError(event) {
 </template>
 
 <style scoped>
-/* Modern Design System */
 * {
   margin: 0;
   padding: 0;
@@ -1589,6 +1793,142 @@ tbody tr:hover {
   font-weight: 600;
 }
 
+/* Enhanced Pagination Styles */
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  flex-wrap: wrap;
+  gap: 16px;
+  border-radius: 0 0 16px 16px;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.pagination-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.pagination-btn:hover:not(:disabled):not(.dots) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.pagination-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+.pagination-btn.dots {
+  cursor: default;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-weight: 600;
+  color: #6c757d;
+  letter-spacing: 2px;
+}
+
+.pagination-btn.dots:hover {
+  background: transparent;
+  transform: none;
+}
+
+/* Page size selector */
+.pagination-page-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #495057;
+  background: white;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.pagination-page-size span {
+  color: #6c757d;
+}
+
+.pagination-page-size select {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.pagination-page-size select:hover {
+  border-color: #667eea;
+}
+
+.pagination-page-size select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .user-management {
     padding: 16px;
@@ -1610,6 +1950,30 @@ tbody tr:hover {
   
   .form-row {
     grid-template-columns: 1fr;
+  }
+  
+  .pagination-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+  
+  .pagination-info {
+    justify-content: center;
+  }
+  
+  .pagination {
+    justify-content: center;
+  }
+  
+  .pagination-btn {
+    min-width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+  
+  .pagination-page-size {
+    justify-content: center;
   }
 }
 </style>

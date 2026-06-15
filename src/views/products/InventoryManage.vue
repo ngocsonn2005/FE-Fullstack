@@ -1,11 +1,10 @@
 <template>
   <div style="padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2>📦 Quản lý tồn kho & Nhập hàng</h2>
-      <button @click="showReceiptModal = true"
-        style="background:#2e7d32;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px">
+      <h2>Quản lý tồn kho & Nhập hàng</h2>
+      <a-button type="primary" style="background:#2e7d32;border-color:#2e7d32" @click="showReceiptModal = true">
         + Tạo phiếu nhập hàng
-      </button>
+      </a-button>
     </div>
 
     <!-- Thống kê -->
@@ -25,208 +24,166 @@
     </div>
 
     <!-- Tabs -->
-<div style="display:flex;gap:8px;margin-bottom:16px">
-  <button @click="activeTab='stock'"
-    :style="{padding:'8px 20px',border:'none',borderRadius:'6px',cursor:'pointer',
-      background:activeTab==='stock'?'#1976d2':'#eee',
-      color:activeTab==='stock'?'white':'#333'}">
-    📊 Tồn kho
-  </button>
-  <button @click="activeTab='receipts';loadReceipts()"
-    :style="{padding:'8px 20px',border:'none',borderRadius:'6px',cursor:'pointer',
-      background:activeTab==='receipts'?'#1976d2':'#eee',
-      color:activeTab==='receipts'?'white':'#333'}">
-    📋 Phiếu nhập hàng
-  </button>
-  <button @click="activeTab='alerts';loadAlerts()"
-    :style="{padding:'8px 20px',border:'none',borderRadius:'6px',cursor:'pointer',
-      background:activeTab==='alerts'?'#c62828':'#eee',
-      color:activeTab==='alerts'?'white':'#333',
-      position:'relative'}">
-    🔔 Cảnh báo hết hàng
-    <span v-if="alertCount > 0"
-      style="position:absolute;top:-6px;right:-6px;background:#ff5722;color:white;
-             border-radius:50%;width:20px;height:20px;font-size:11px;
-             display:flex;align-items:center;justify-content:center;font-weight:bold">
-      {{ alertCount }}
-    </span>
-  </button>
-</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <a-button :type="activeTab==='stock'?'primary':'default'" @click="activeTab='stock'">
+        Tồn kho
+      </a-button>
+      <a-button :type="activeTab==='receipts'?'primary':'default'" @click="activeTab='receipts';loadReceipts()">
+        Phiếu nhập hàng
+      </a-button>
+      <a-badge :count="alertCount" :offset="[-4, 4]">
+        <a-button
+          :type="activeTab==='alerts'?'primary':'default'"
+          :danger="activeTab==='alerts'"
+          @click="activeTab='alerts';loadAlerts()">
+          Cảnh báo hết hàng
+        </a-button>
+      </a-badge>
+    </div>
 
     <!-- Tab Tồn kho -->
     <div v-if="activeTab==='stock'">
-      <div v-if="error" style="background:#ffebee;color:#c62828;padding:12px;border-radius:6px;margin-bottom:16px">⚠️ {{ error }}</div>
-      <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="background:#37474f;color:white">
-              <th style="padding:12px;text-align:left">Mã SP</th>
-              <th style="padding:12px;text-align:left">Tên sản phẩm</th>
-              <th style="padding:12px;text-align:center">Tồn kho</th>
-              <th style="padding:12px;text-align:center">Ngưỡng cảnh báo</th>
-              <th style="padding:12px;text-align:right">Giá bán</th>
-              <th style="padding:12px;text-align:center">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="6" style="text-align:center;padding:40px">Đang tải...</td></tr>
-            <tr v-else-if="products.length===0">
-              <td colspan="6" style="text-align:center;padding:40px;color:#666">Không có dữ liệu</td>
-            </tr>
-            <tr v-for="(p,i) in products" :key="p.id"
-              :style="{background:i%2===0?'#fafafa':'white',borderBottom:'1px solid #eee'}">
-              <td style="padding:12px;font-weight:bold;color:#1976d2">{{ p.code }}</td>
-              <td style="padding:12px">{{ p.name }}</td>
-              <td style="padding:12px;text-align:center;font-size:18px;font-weight:bold"
-                :style="{color: p.isLowStock ? '#c62828' : '#2e7d32'}">
-                {{ p.stockQuantity }}
-              </td>
-              <td style="padding:12px;text-align:center;color:#666">{{ p.minStockThreshold }}</td>
-              <td style="padding:12px;text-align:right">{{ formatPrice(p.salePrice) }}</td>
-              <td style="padding:12px;text-align:center">
-                <span :style="{
-                  background: p.stockQuantity===0?'#ffebee':p.isLowStock?'#fff3e0':'#e8f5e9',
-                  color: p.stockQuantity===0?'#c62828':p.isLowStock?'#e65100':'#2e7d32',
-                  padding:'4px 10px',borderRadius:'12px',fontSize:'13px'
-                }">
-                  {{ p.stockQuantity===0 ? '🔴 Hết hàng' : p.isLowStock ? '🟡 Sắp hết' : '🟢 Còn hàng' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="error" style="background:#ffebee;color:#c62828;padding:12px;border-radius:6px;margin-bottom:16px">{{ error }}</div>
+      <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:16px">
+        <a-table
+          :columns="stockColumns"
+          :data-source="products"
+          :loading="{ spinning: loading, tip: 'Đang tải...' }"
+          row-key="id"
+          :pagination="{ pageSize: 8 }"
+          :locale="{ emptyText: 'Không có dữ liệu' }"
+          bordered
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'code'">
+              <span style="font-weight:bold;color:#1976d2">{{ record.code }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'stockQuantity'">
+              <span :style="{fontWeight:'bold',fontSize:'16px',color:record.isLowStock?'#c62828':'#2e7d32'}">
+                {{ record.stockQuantity }}
+              </span>
+            </template>
+            <template v-else-if="column.dataIndex === 'salePrice'">
+              {{ formatPrice(record.salePrice) }}
+            </template>
+            <template v-else-if="column.dataIndex === 'status'">
+              <a-tag :color="record.stockQuantity===0?'error':record.isLowStock?'warning':'success'">
+                {{ record.stockQuantity===0 ? 'Hết hàng' : record.isLowStock ? 'Sắp hết' : 'Còn hàng' }}
+              </a-tag>
+            </template>
+            <template v-else>{{ record[column.dataIndex] }}</template>
+          </template>
+        </a-table>
       </div>
     </div>
 
     <!-- Tab Phiếu nhập hàng -->
     <div v-if="activeTab==='receipts'">
-      <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="background:#37474f;color:white">
-              <th style="padding:12px;text-align:left">Mã phiếu</th>
-              <th style="padding:12px;text-align:left">Ngày tạo</th>
-              <th style="padding:12px;text-align:left">Ghi chú</th>
-              <th style="padding:12px;text-align:center">Số mặt hàng</th>
-              <th style="padding:12px;text-align:center">Tổng giá trị</th>
-              <th style="padding:12px;text-align:center">Trạng thái</th>
-              <th style="padding:12px;text-align:center">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="receipts.length===0">
-              <td colspan="7" style="text-align:center;padding:40px;color:#666">Chưa có phiếu nhập hàng</td>
-            </tr>
-            <tr v-for="(r,i) in receipts" :key="r.id"
-              :style="{background:i%2===0?'#fafafa':'white',borderBottom:'1px solid #eee'}">
-
-              <!-- Mã phiếu → click để xem chi tiết -->
-              <td style="padding:12px">
-                <span @click="viewReceipt(r)"
-                  style="color:#1976d2;font-weight:bold;cursor:pointer;text-decoration:underline"
-                  title="Click để xem chi tiết">
-                  {{ r.receiptCode }}
-                </span>
-              </td>
-
-              <td style="padding:12px">{{ formatDate(r.receiptDate) }}</td>
-              <td style="padding:12px;color:#666">{{ r.note || '—' }}</td>
-              <td style="padding:12px;text-align:center">{{ r.items?.length || 0 }} mặt hàng</td>
-              <td style="padding:12px;text-align:center;color:#2e7d32;font-weight:bold">
-                {{ formatPrice(totalReceiptValue(r)) }}
-              </td>
-              <td style="padding:12px;text-align:center">
-                <span :style="{
-                  background:r.status==='Confirmed'?'#e8f5e9':'#fff3e0',
-                  color:r.status==='Confirmed'?'#2e7d32':'#e65100',
-                  padding:'4px 10px',borderRadius:'12px',fontSize:'13px'
-                }">
-                  {{ r.status==='Confirmed' ? '✅ Đã xác nhận' : '⏳ Chờ xác nhận' }}
-                </span>
-              </td>
-              <td style="padding:12px;text-align:center">
-                <button @click="viewReceipt(r)"
-                  style="background:#1976d2;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:4px">
-                  🔍 Xem
-                </button>
-                <button v-if="r.status==='Pending'" @click="confirmReceipt(r)"
-                  style="background:#2e7d32;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px">
-                  ✅ Xác nhận
-                </button>
-                <span v-else style="color:#999;font-size:12px">Đã hoàn thành</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <!-- Tab Cảnh báo hết hàng -->
-<div v-if="activeTab==='alerts'">
-  <div v-if="alerts.length===0"
-    style="background:#e8f5e9;color:#2e7d32;padding:20px;border-radius:8px;text-align:center;font-size:16px">
-    ✅ Tất cả sản phẩm đều đủ hàng!
-  </div>
-  <div v-else>
-    <!-- Tóm tắt -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:8px;padding:16px;text-align:center">
-        <div style="font-size:13px;color:#c62828;font-weight:500">🔴 HẾT HÀNG</div>
-        <div style="font-size:28px;font-weight:bold;color:#c62828;margin-top:4px">
-          {{ alerts.filter(a=>a.status==='out_of_stock').length }}
-        </div>
-      </div>
-      <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:16px;text-align:center">
-        <div style="font-size:13px;color:#e65100;font-weight:500">🟡 SẮP HẾT</div>
-        <div style="font-size:28px;font-weight:bold;color:#e65100;margin-top:4px">
-          {{ alerts.filter(a=>a.status==='low_stock').length }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Bảng cảnh báo -->
-    <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden">
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:#c62828;color:white">
-            <th style="padding:12px;text-align:left">Mã SP</th>
-            <th style="padding:12px;text-align:left">Tên sản phẩm</th>
-            <th style="padding:12px;text-align:center">Tồn kho</th>
-            <th style="padding:12px;text-align:center">Ngưỡng tối thiểu</th>
-            <th style="padding:12px;text-align:center">Trạng thái</th>
-            <th style="padding:12px;text-align:center">Cần nhập thêm</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(a,i) in alerts" :key="a.id"
-            :style="{
-              background: a.status==='out_of_stock' ? '#fff5f5' : '#fffbf0',
-              borderBottom:'1px solid #eee'
-            }">
-            <td style="padding:12px;font-weight:bold;color:#1976d2">{{ a.code }}</td>
-            <td style="padding:12px;font-weight:500">{{ a.name }}</td>
-            <td style="padding:12px;text-align:center;font-size:20px;font-weight:bold"
-              :style="{color: a.status==='out_of_stock'?'#c62828':'#e65100'}">
-              {{ a.stockQuantity }}
-            </td>
-            <td style="padding:12px;text-align:center;color:#666">{{ a.minStockThreshold }}</td>
-            <td style="padding:12px;text-align:center">
-              <span :style="{
-                background: a.status==='out_of_stock'?'#ffebee':'#fff3e0',
-                color: a.status==='out_of_stock'?'#c62828':'#e65100',
-                padding:'4px 12px',borderRadius:'12px',fontSize:'13px',fontWeight:'bold'
-              }">
-                {{ a.status==='out_of_stock' ? '🔴 Hết hàng' : '🟡 Sắp hết' }}
+      <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:16px">
+        <a-table
+          :columns="receiptColumns"
+          :data-source="receipts"
+          row-key="id"
+          :pagination="{ pageSize: 8 }"
+          :locale="{ emptyText: 'Chưa có phiếu nhập hàng' }"
+          bordered
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.dataIndex === 'receiptCode'">
+              <span @click="viewReceipt(record)"
+                style="color:#1976d2;font-weight:bold;cursor:pointer;text-decoration:underline">
+                {{ record.receiptCode }}
               </span>
-            </td>
-            <td style="padding:12px;text-align:center;font-weight:bold;color:#1976d2">
-              +{{ a.minStockThreshold - a.stockQuantity + 10 }} sản phẩm
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </template>
+            <template v-else-if="column.dataIndex === 'receiptDate'">
+              {{ formatDate(record.receiptDate) }}
+            </template>
+            <template v-else-if="column.dataIndex === 'note'">
+              <span style="color:#666">{{ record.note || '—' }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'itemCount'">
+              {{ record.items?.length || 0 }} mặt hàng
+            </template>
+            <template v-else-if="column.dataIndex === 'totalValue'">
+              <span style="color:#2e7d32;font-weight:bold">{{ formatPrice(totalReceiptValue(record)) }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'status'">
+              <a-tag :color="record.status==='Confirmed'?'success':'warning'">
+                {{ record.status==='Confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận' }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.dataIndex === 'actions'">
+              <a-space>
+                <a-button size="small" @click="viewReceipt(record)">Xem</a-button>
+                <a-button v-if="record.status==='Pending'" type="primary" size="small" style="background:#2e7d32;border-color:#2e7d32" @click="confirmReceipt(record)">
+                  Xác nhận
+                </a-button>
+                <span v-else style="color:#999;font-size:12px">Đã hoàn thành</span>
+              </a-space>
+            </template>
+            <template v-else>{{ record[column.dataIndex] }}</template>
+          </template>
+        </a-table>
+      </div>
     </div>
-  </div>
-</div>
+
+    <!-- Tab Cảnh báo hết hàng -->
+    <div v-if="activeTab==='alerts'">
+      <div v-if="alerts.length===0"
+        style="background:#e8f5e9;color:#2e7d32;padding:20px;border-radius:8px;text-align:center;font-size:16px">
+        Tất cả sản phẩm đều đủ hàng!
+      </div>
+      <div v-else>
+        <!-- Tóm tắt -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:8px;padding:16px;text-align:center">
+            <div style="font-size:13px;color:#c62828;font-weight:500">HẾT HÀNG</div>
+            <div style="font-size:28px;font-weight:bold;color:#c62828;margin-top:4px">
+              {{ alerts.filter(a=>a.status==='out_of_stock').length }}
+            </div>
+          </div>
+          <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:16px;text-align:center">
+            <div style="font-size:13px;color:#e65100;font-weight:500">SẮP HẾT</div>
+            <div style="font-size:28px;font-weight:bold;color:#e65100;margin-top:4px">
+              {{ alerts.filter(a=>a.status==='low_stock').length }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Bảng cảnh báo -->
+        <div style="background:white;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:16px">
+          <a-table
+            :columns="alertColumns"
+            :data-source="alerts"
+            row-key="id"
+            :pagination="{ pageSize: 8 }"
+            bordered
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'code'">
+                <span style="font-weight:bold;color:#1976d2">{{ record.code }}</span>
+              </template>
+              <template v-else-if="column.dataIndex === 'stockQuantity'">
+                <span :style="{fontWeight:'bold',fontSize:'16px',color:record.status==='out_of_stock'?'#c62828':'#e65100'}">
+                  {{ record.stockQuantity }}
+                </span>
+              </template>
+              <template v-else-if="column.dataIndex === 'status'">
+                <a-tag :color="record.status==='out_of_stock'?'error':'warning'">
+                  {{ record.status==='out_of_stock' ? 'Hết hàng' : 'Sắp hết' }}
+                </a-tag>
+              </template>
+              <template v-else-if="column.dataIndex === 'needImport'">
+                <span style="font-weight:bold;color:#1976d2">
+                  +{{ record.minStockThreshold - record.stockQuantity + 10 }} sản phẩm
+                </span>
+              </template>
+              <template v-else>{{ record[column.dataIndex] }}</template>
+            </template>
+          </a-table>
+        </div>
+      </div>
+    </div>
 
     <!-- ══════════════════════════════════════
          MODAL XEM CHI TIẾT PHIẾU NHẬP
@@ -238,12 +195,12 @@
         <!-- Header -->
         <div style="background:#37474f;color:white;padding:20px 24px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:18px;font-weight:bold">📋 Chi tiết phiếu nhập hàng</div>
+            <div style="font-size:18px;font-weight:bold">Chi tiết phiếu nhập hàng</div>
             <div style="font-size:14px;opacity:0.8;margin-top:2px">{{ selectedReceipt.receiptCode }}</div>
           </div>
           <button @click="selectedReceipt = null"
             style="background:rgba(255,255,255,0.2);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">
-            ✕
+            X
           </button>
         </div>
 
@@ -266,7 +223,7 @@
                 color: selectedReceipt.status==='Confirmed'?'#2e7d32':'#e65100',
                 padding:'4px 12px',borderRadius:'12px',fontSize:'13px',fontWeight:'bold'
               }">
-                {{ selectedReceipt.status==='Confirmed' ? '✅ Đã xác nhận' : '⏳ Chờ xác nhận' }}
+                {{ selectedReceipt.status==='Confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận' }}
               </span>
             </div>
             <div style="background:#f5f5f5;border-radius:8px;padding:14px">
@@ -277,7 +234,7 @@
 
           <!-- Danh sách mặt hàng -->
           <div style="font-weight:600;font-size:15px;margin-bottom:12px;color:#37474f">
-            📦 Danh sách mặt hàng ({{ selectedReceipt.items?.length || 0 }} sản phẩm)
+            Danh sách mặt hàng ({{ selectedReceipt.items?.length || 0 }} sản phẩm)
           </div>
 
           <div style="border-radius:8px;overflow:hidden;border:1px solid #e0e0e0">
@@ -322,7 +279,7 @@
           <div style="display:flex;justify-content:flex-end;margin-top:20px;gap:10px">
             <button v-if="selectedReceipt.status==='Pending'" @click="confirmReceipt(selectedReceipt); selectedReceipt=null"
               style="background:#2e7d32;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:500">
-              ✅ Xác nhận nhập kho
+              Xác nhận nhập kho
             </button>
             <button @click="selectedReceipt = null"
               style="background:#37474f;color:white;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;font-weight:500">
@@ -339,7 +296,7 @@
     <div v-if="showReceiptModal"
       style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000">
       <div style="background:white;border-radius:12px;padding:32px;width:660px;max-height:90vh;overflow-y:auto">
-        <h3 style="margin:0 0 24px">📥 Tạo phiếu nhập hàng</h3>
+        <h3 style="margin:0 0 24px">Tạo phiếu nhập hàng</h3>
 
         <div style="margin-bottom:16px">
           <label style="display:block;margin-bottom:4px;font-weight:500">Ghi chú</label>
@@ -361,7 +318,7 @@
             <div style="display:flex;justify-content:space-between;margin-bottom:12px">
               <strong style="color:#1976d2">Mặt hàng {{ idx + 1 }}</strong>
               <button @click="removeReceiptItem(idx)"
-                style="background:#f44336;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer">✕ Xóa</button>
+                style="background:#f44336;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer">Xóa</button>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
@@ -393,11 +350,15 @@
               </div>
               <div>
                 <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:500">Danh mục</label>
-                <select v-model="item.categoryId"
-                  style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
-                  <option :value="1">Điện tử</option>
-                  <option :value="2">Thực phẩm</option>
-                </select>
+                <div style="display:flex;gap:6px">
+                  <select v-model="item.categoryId"
+                    style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box">
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                  </select>
+                  <button type="button" @click="openAddCategory"
+                    style="padding:8px 12px;background:#1976d2;color:white;border:none;border-radius:6px;cursor:pointer;font-size:18px;font-weight:bold"
+                    title="Thêm danh mục mới">+</button>
+                </div>
               </div>
             </div>
           </div>
@@ -416,7 +377,7 @@
 
         <div v-if="receiptError"
           style="background:#ffebee;color:#c62828;padding:12px;border-radius:6px;margin-bottom:12px">
-          ⚠️ {{ receiptError }}
+          {{ receiptError }}
         </div>
 
         <div style="display:flex;gap:12px;justify-content:flex-end">
@@ -424,13 +385,44 @@
             style="padding:10px 20px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:white">Hủy</button>
           <button @click="saveReceipt" :disabled="savingReceipt"
             style="padding:10px 24px;background:#2e7d32;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;font-size:14px">
-            {{ savingReceipt ? '⏳ Đang nhập hàng...' : '💾 Xác nhận nhập hàng' }}
+            {{ savingReceipt ? 'Đang nhập hàng...' : 'Xác nhận nhập hàng' }}
           </button>
         </div>
       </div>
     </div>
 
   </div>
+
+  <!-- MODAL THÊM DANH MỤC MỚI -->
+  <div v-if="showCategoryModal"
+    style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000">
+    <div style="background:white;border-radius:12px;padding:28px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+      <h3 style="margin:0 0 20px;color:#1976d2">Thêm danh mục mới</h3>
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:4px;font-weight:500">Tên danh mục *</label>
+        <input v-model="newCategory.name" placeholder="VD: Quần áo, Đồ gia dụng..."
+          style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;font-size:14px"
+          @keyup.enter="saveCategory" />
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;margin-bottom:4px;font-weight:500">Mô tả</label>
+        <input v-model="newCategory.description" placeholder="Mô tả ngắn về danh mục..."
+          style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;font-size:14px" />
+      </div>
+      <div v-if="categoryError" style="background:#ffebee;color:#c62828;padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px">
+        {{ categoryError }}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button @click="showCategoryModal=false"
+          style="padding:9px 20px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:white">Hủy</button>
+        <button @click="saveCategory" :disabled="savingCategory"
+          style="padding:9px 20px;background:#1976d2;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500">
+          {{ savingCategory ? 'Đang lưu...' : 'Lưu danh mục' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script setup>
@@ -457,6 +449,35 @@ const viewReceipt = (r) => {
 }
 
 const lowStockCount = computed(() => products.value.filter(p => p.isLowStock).length)
+
+// ── Columns cho a-table ──
+const stockColumns = [
+  { title: 'Mã SP', dataIndex: 'code', key: 'code', sorter: (a, b) => (a.code||'').localeCompare(b.code||'') },
+  { title: 'Tên sản phẩm', dataIndex: 'name', key: 'name', sorter: (a, b) => (a.name||'').localeCompare(b.name||'') },
+  { title: 'Tồn kho', dataIndex: 'stockQuantity', key: 'stockQuantity', align: 'center', sorter: (a, b) => a.stockQuantity - b.stockQuantity },
+  { title: 'Ngưỡng cảnh báo', dataIndex: 'minStockThreshold', key: 'minStockThreshold', align: 'center' },
+  { title: 'Giá bán', dataIndex: 'salePrice', key: 'salePrice', align: 'right' },
+  { title: 'Trạng thái', dataIndex: 'status', key: 'status', align: 'center' },
+]
+
+const receiptColumns = [
+  { title: 'Mã phiếu', dataIndex: 'receiptCode', key: 'receiptCode' },
+  { title: 'Ngày tạo', dataIndex: 'receiptDate', key: 'receiptDate' },
+  { title: 'Ghi chú', dataIndex: 'note', key: 'note' },
+  { title: 'Số mặt hàng', dataIndex: 'itemCount', key: 'itemCount', align: 'center' },
+  { title: 'Tổng giá trị', dataIndex: 'totalValue', key: 'totalValue', align: 'center' },
+  { title: 'Trạng thái', dataIndex: 'status', key: 'status', align: 'center' },
+  { title: 'Thao tác', dataIndex: 'actions', key: 'actions', align: 'center' },
+]
+
+const alertColumns = [
+  { title: 'Mã SP', dataIndex: 'code', key: 'code' },
+  { title: 'Tên sản phẩm', dataIndex: 'name', key: 'name' },
+  { title: 'Tồn kho', dataIndex: 'stockQuantity', key: 'stockQuantity', align: 'center' },
+  { title: 'Ngưỡng tối thiểu', dataIndex: 'minStockThreshold', key: 'minStockThreshold', align: 'center' },
+  { title: 'Trạng thái', dataIndex: 'status', key: 'status', align: 'center' },
+  { title: 'Cần nhập thêm', dataIndex: 'needImport', key: 'needImport', align: 'center' },
+]
 
 // Tổng giá trị 1 phiếu
 const totalReceiptValue = (r) =>
@@ -488,13 +509,13 @@ const loadProducts = async () => {
 
 const loadReceipts = async () => {
   try {
-    const res = await productApi.get('/inventory')
+    const res = await productApi.get('/imports')
     receipts.value = res.data
   } catch {}
 }
 const loadAlerts = async () => {
   try {
-    const res = await productApi.get('/inventory/alerts')
+    const res = await productApi.get('/alerts')
     alerts.value     = res.data.items || []
     alertCount.value = res.data.total || 0
   } catch {
@@ -524,7 +545,7 @@ const saveReceipt = async () => {
       })
       createdProducts.push({ ...item, productId: res.data.id })
     }
-    const receiptRes = await productApi.post('/inventory', {
+    const receiptRes = await productApi.post('/imports', {
       note: receiptForm.value.note,
       items: createdProducts.map(i => ({
         productId: i.productId,
@@ -532,8 +553,8 @@ const saveReceipt = async () => {
         unitCostPrice: parseFloat(i.unitCostPrice) || 0
       }))
     })
-    await productApi.post(`/inventory/${receiptRes.data.id}/confirm`)
-    alert(`✅ Nhập hàng thành công!\n${createdProducts.length} sản phẩm đã được thêm vào kho.`)
+    await productApi.post(`/imports/${receiptRes.data.id}/confirm`)
+    alert(`Nhập hàng thành công!\n${createdProducts.length} sản phẩm đã được thêm vào kho.`)
     closeReceiptModal()
     loadProducts()
     loadReceipts()
@@ -547,8 +568,8 @@ const saveReceipt = async () => {
 const confirmReceipt = async (r) => {
   if (!confirm(`Xác nhận nhập hàng phiếu ${r.receiptCode}?`)) return
   try {
-    await productApi.post(`/inventory/${r.id}/confirm`)
-    alert('✅ Xác nhận thành công! Tồn kho đã cập nhật.')
+    await productApi.post(`/imports/${r.id}/confirm`)
+    alert('Xác nhận thành công! Tồn kho đã cập nhật.')
     loadProducts()
     loadReceipts()
   } catch (e) {
@@ -562,8 +583,53 @@ const closeReceiptModal = () => {
   receiptError.value = ''
 }
 
+
+// ── Danh mục ──
+const categories       = ref([])
+const showCategoryModal= ref(false)
+const savingCategory   = ref(false)
+const categoryError    = ref('')
+const newCategory      = ref({ name: '', description: '' })
+
+const loadCategories = async () => {
+  try {
+    const res = await productApi.get('/categories')
+    categories.value = res.data
+  } catch {}
+}
+
+const openAddCategory = () => {
+  newCategory.value = { name: '', description: '' }
+  categoryError.value = ''
+  showCategoryModal.value = true
+}
+
+const saveCategory = async () => {
+  if (!newCategory.value.name.trim()) { categoryError.value = 'Vui lòng nhập tên danh mục'; return }
+  savingCategory.value = true
+  categoryError.value = ''
+  try {
+    const res = await productApi.post('/categories', {
+      name: newCategory.value.name.trim(),
+      description: newCategory.value.description.trim() || null
+    })
+    categories.value.push(res.data)
+    // Gán danh mục mới cho item cuối cùng đang nhập
+    if (receiptForm.value.items.length > 0) {
+      receiptForm.value.items[receiptForm.value.items.length - 1].categoryId = res.data.id
+    }
+    showCategoryModal.value = false
+    alert('Thêm danh mục "' + res.data.name + '" thành công!')
+  } catch (e) {
+    categoryError.value = 'Lỗi: ' + (e.response?.data?.title || e.response?.data || e.message)
+  } finally {
+    savingCategory.value = false
+  }
+}
+
 onMounted(() => {
     loadProducts()
-    loadAlerts()  
+    loadAlerts()
+    loadCategories()
  })
 </script>

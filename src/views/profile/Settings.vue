@@ -2,8 +2,16 @@
   <div class="settings-container">
     <!-- Header -->
     <div class="settings-header">
-      <h1 class="settings-title">⚙️ Cài đặt hệ thống</h1>
-      <p class="settings-subtitle">Quản lý thông tin cá nhân và tùy chỉnh giao diện</p>
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1 class="settings-title">Cài đặt hệ thống</h1>
+        <p class="settings-subtitle">Quản lý thông tin cá nhân và tùy chỉnh giao diện</p>
+      </div>
     </div>
 
     <div class="settings-grid">
@@ -16,7 +24,7 @@
             :class="['nav-item', { active: activeTab === tab.key }]"
             @click="activeTab = tab.key"
           >
-            <span class="nav-icon">{{ tab.icon }}</span>
+            <span class="nav-icon" v-html="tab.icon"></span>
             <span class="nav-text">{{ tab.label }}</span>
           </button>
         </div>
@@ -27,7 +35,7 @@
         <!-- Profile Settings -->
         <div v-if="activeTab === 'profile'" class="settings-panel">
           <div class="panel-header">
-            <h2>👤 Thông tin cá nhân</h2>
+            <h2>Thông tin cá nhân</h2>
             <p>Cập nhật thông tin hồ sơ của bạn</p>
           </div>
           <div class="panel-body">
@@ -39,10 +47,12 @@
                   <div class="avatar-preview">
                     <img :src="profileForm.avatar || defaultAvatar" alt="Avatar">
                     <button type="button" class="avatar-edit" @click="openAvatarModal">
-                      ✏️
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
                     </button>
                   </div>
-                  <p class="avatar-hint">Click vào icon bút để đổi ảnh đại diện</p>
+                  <p class="avatar-hint">Nhấp vào biểu tượng bút để thay đổi ảnh đại diện</p>
                 </div>
               </div>
 
@@ -74,16 +84,203 @@
               </div>
 
               <div class="alert alert-success" v-if="successMessage">
-                ✅ {{ successMessage }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                {{ successMessage }}
               </div>
               <div class="alert alert-danger" v-if="errorMessage">
-                ⚠️ {{ errorMessage }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {{ errorMessage }}
               </div>
 
               <div class="form-actions">
-                <button type="button" class="btn-secondary" @click="resetProfile">Hủy</button>
+                <button type="button" class="btn-secondary" @click="resetProfile">Hủy bỏ</button>
                 <button type="submit" class="btn-primary" :disabled="profileSaving">
                   {{ profileSaving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Change Password Settings -->
+        <div v-if="activeTab === 'password'" class="settings-panel">
+          <div class="panel-header">
+            <h2>Đổi mật khẩu</h2>
+            <p>Cập nhật mật khẩu để bảo vệ tài khoản của bạn</p>
+          </div>
+          <div class="panel-body">
+            <form @submit.prevent="handleChangePassword">
+              <!-- Mật khẩu cũ -->
+              <div class="form-group">
+                <label>Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                <div class="input-group-custom">
+                  <span class="input-group-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </span>
+                  <input 
+                    :type="showOldPassword ? 'text' : 'password'" 
+                    v-model="passwordForm.oldPassword"
+                    class="form-control"
+                    placeholder="Nhập mật khẩu hiện tại"
+                    required
+                  >
+                  <button type="button" class="input-group-btn" @click="showOldPassword = !showOldPassword">
+                    <svg v-if="!showOldPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mật khẩu mới -->
+              <div class="form-group">
+                <label>Mật khẩu mới <span class="text-danger">*</span></label>
+                <div class="input-group-custom">
+                  <span class="input-group-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </span>
+                  <input 
+                    :type="showNewPassword ? 'text' : 'password'" 
+                    v-model="passwordForm.newPassword"
+                    class="form-control"
+                    placeholder="Nhập mật khẩu mới"
+                    required
+                    @input="checkPasswordStrength"
+                  >
+                  <button type="button" class="input-group-btn" @click="showNewPassword = !showNewPassword">
+                    <svg v-if="!showNewPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                <!-- Password Strength -->
+                <div v-if="passwordForm.newPassword" class="password-strength mt-2">
+                  <div class="strength-bar">
+                    <div class="strength-level" :class="passwordStrength.class" :style="{ width: passwordStrength.percent + '%' }"></div>
+                  </div>
+                  <span class="strength-text" :class="passwordStrength.class">{{ passwordStrength.text }}</span>
+                </div>
+                
+                <!-- Password Requirements -->
+                <div class="password-requirements mt-2">
+                  <div class="requirement-item" :class="{ met: passwordForm.newPassword.length >= 6 }">
+                    <span class="req-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </span>
+                    <span class="req-text">Ít nhất 6 ký tự</span>
+                  </div>
+                  <div class="requirement-item" :class="{ met: hasSpecialChar }">
+                    <span class="req-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </span>
+                    <span class="req-text">Ít nhất 1 ký tự đặc biệt</span>
+                  </div>
+                  <div class="requirement-item" :class="{ met: hasUpperCase }">
+                    <span class="req-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </span>
+                    <span class="req-text">Ít nhất 1 chữ hoa</span>
+                  </div>
+                  <div class="requirement-item" :class="{ met: hasNumber }">
+                    <span class="req-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </span>
+                    <span class="req-text">Ít nhất 1 số</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Xác nhận mật khẩu mới -->
+              <div class="form-group">
+                <label>Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                <div class="input-group-custom">
+                  <span class="input-group-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </span>
+                  <input 
+                    :type="showConfirmPassword ? 'text' : 'password'" 
+                    v-model="passwordForm.confirmNewPassword"
+                    class="form-control"
+                    placeholder="Xác nhận mật khẩu mới"
+                    required
+                  >
+                  <button type="button" class="input-group-btn" @click="showConfirmPassword = !showConfirmPassword">
+                    <svg v-if="!showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  </button>
+                </div>
+                <div v-if="passwordForm.confirmNewPassword && passwordForm.newPassword !== passwordForm.confirmNewPassword" class="error-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Mật khẩu xác nhận không khớp
+                </div>
+              </div>
+
+              <!-- Thông báo -->
+              <div v-if="passwordErrorMessage" class="alert alert-danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {{ passwordErrorMessage }}
+              </div>
+              <div v-if="passwordSuccessMessage" class="alert alert-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                {{ passwordSuccessMessage }}
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" @click="resetPasswordForm">Hủy bỏ</button>
+                <button type="submit" class="btn-primary" :disabled="passwordSaving">
+                  {{ passwordSaving ? 'Đang xử lý...' : 'Đổi mật khẩu' }}
                 </button>
               </div>
             </form>
@@ -93,7 +290,7 @@
         <!-- Appearance Settings -->
         <div v-if="activeTab === 'appearance'" class="settings-panel">
           <div class="panel-header">
-            <h2>🎨 Giao diện</h2>
+            <h2>Giao diện</h2>
             <p>Tùy chỉnh giao diện hiển thị</p>
           </div>
           <div class="panel-body">
@@ -135,7 +332,7 @@
         <!-- Notifications Settings -->
         <div v-if="activeTab === 'notifications'" class="settings-panel">
           <div class="panel-header">
-            <h2>🔔 Thông báo</h2>
+            <h2>Thông báo</h2>
             <p>Quản lý cách bạn nhận thông báo</p>
           </div>
           <div class="panel-body">
@@ -180,28 +377,27 @@
     <div v-if="showAvatarModal" class="modal-overlay" @click.self="showAvatarModal = false">
       <div class="modal-container">
         <div class="modal-header">
-          <h3>🖼️ Đổi ảnh đại diện</h3>
-          <button class="close-btn" @click="showAvatarModal = false">&times;</button>
+          <h3>Đổi ảnh đại diện</h3>
+          <button class="close-btn" @click="showAvatarModal = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
         <div class="modal-body">
           <div class="avatar-options">
-            <div class="avatar-option" @click="selectAvatar(1)">
-              <img src="https://ui-avatars.com/api/?background=6366f1&color=fff&bold=true&length=1&size=80" alt="Avatar 1">
-            </div>
-            <div class="avatar-option" @click="selectAvatar(2)">
-              <img src="https://ui-avatars.com/api/?background=10b981&color=fff&bold=true&length=1&size=80" alt="Avatar 2">
-            </div>
-            <div class="avatar-option" @click="selectAvatar(3)">
-              <img src="https://ui-avatars.com/api/?background=f59e0b&color=fff&bold=true&length=1&size=80" alt="Avatar 3">
-            </div>
-            <div class="avatar-option" @click="selectAvatar(4)">
-              <img src="https://ui-avatars.com/api/?background=ef4444&color=fff&bold=true&length=1&size=80" alt="Avatar 4">
-            </div>
-            <div class="avatar-option" @click="selectAvatar(5)">
-              <img src="https://ui-avatars.com/api/?background=8b5cf6&color=fff&bold=true&length=1&size=80" alt="Avatar 5">
+            <div v-for="i in 5" :key="i" class="avatar-option" @click="selectAvatar(i)">
+              <img :src="`https://ui-avatars.com/api/?background=${colors[i-1]}&color=fff&bold=true&length=2&size=80`" :alt="`Avatar ${i}`">
             </div>
             <div class="avatar-option custom" @click="uploadCustomAvatar">
-              <div class="custom-icon">📁</div>
+              <div class="custom-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
               <span>Tải lên</span>
             </div>
           </div>
@@ -212,7 +408,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-secondary" @click="showAvatarModal = false">Hủy</button>
+          <button class="btn-secondary" @click="showAvatarModal = false">Hủy bỏ</button>
           <button class="btn-primary" @click="saveAvatar">Lưu</button>
         </div>
       </div>
@@ -220,13 +416,27 @@
 
     <!-- Toast message -->
     <div v-if="toast.show" :class="['toast-message', toast.type]">
+      <svg v-if="toast.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <svg v-else-if="toast.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
       {{ toast.message }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/api/axios';
 
@@ -235,9 +445,10 @@ const authStore = useAuthStore();
 // Tabs
 const activeTab = ref('profile');
 const tabs = [
-  { key: 'profile', icon: '👤', label: 'Hồ sơ' },
-  { key: 'appearance', icon: '🎨', label: 'Giao diện' },
-  { key: 'notifications', icon: '🔔', label: 'Thông báo' }
+  { key: 'profile', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>', label: 'Hồ sơ' },
+  { key: 'password', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', label: 'Mật khẩu' },
+  { key: 'appearance', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>', label: 'Giao diện' },
+  { key: 'notifications', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>', label: 'Thông báo' }
 ];
 
 // Profile form
@@ -253,6 +464,22 @@ const profileSaving = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const defaultAvatar = 'https://ui-avatars.com/api/?background=6366f1&color=fff&bold=true&length=2';
+
+// Password form
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmNewPassword: ''
+});
+
+const passwordSaving = ref(false);
+const passwordErrorMessage = ref('');
+const passwordSuccessMessage = ref('');
+
+// Show/hide password
+const showOldPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 // Appearance
 const appearance = reactive({
@@ -271,6 +498,7 @@ const notifications = reactive({
 // Modals
 const showAvatarModal = ref(false);
 const avatarUrl = ref('');
+const colors = ['6366f1', '10b981', 'f59e0b', 'ef4444', '8b5cf6'];
 
 // Toast
 const toast = ref({ show: false, message: '', type: 'success' });
@@ -282,13 +510,41 @@ const displayRole = computed(() => {
   return roles[role] || role;
 });
 
+// Password strength indicators
+const hasSpecialChar = computed(() => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passwordForm.newPassword));
+const hasUpperCase = computed(() => /[A-Z]/.test(passwordForm.newPassword));
+const hasNumber = computed(() => /[0-9]/.test(passwordForm.newPassword));
+
+const passwordStrength = computed(() => {
+  const pwd = passwordForm.newPassword;
+  if (!pwd) return { class: '', text: '', percent: 0 };
+  
+  let strength = 0;
+  if (pwd.length >= 6) strength++;
+  if (hasSpecialChar.value) strength++;
+  if (hasUpperCase.value) strength++;
+  if (hasNumber.value) strength++;
+  
+  const percent = (strength / 4) * 100;
+  
+  if (strength <= 2) return { class: 'weak', text: 'Yếu', percent: percent };
+  if (strength === 3) return { class: 'medium', text: 'Trung bình', percent: percent };
+  return { class: 'strong', text: 'Mạnh', percent: percent };
+});
+
+const isPasswordValid = computed(() => {
+  return passwordForm.newPassword.length >= 6 && 
+         hasSpecialChar.value && 
+         hasUpperCase.value && 
+         hasNumber.value;
+});
+
 onMounted(() => {
   loadUserProfile();
   loadSettings();
 });
 
 function loadUserProfile() {
-  // Lấy thông tin từ authStore và localStorage
   profileForm.fullName = authStore.fullName || localStorage.getItem('fullName') || '';
   profileForm.email = authStore.user?.email || '';
   profileForm.phone = authStore.user?.phone || '';
@@ -316,7 +572,6 @@ function loadSettings() {
     }
   }
   
-  // Áp dụng dark mode nếu có
   if (appearance.darkMode) {
     document.body.classList.add('dark-mode');
   }
@@ -328,23 +583,20 @@ async function updateProfile() {
   profileSaving.value = true;
   
   try {
-    // Lấy userId từ localStorage hoặc authStore
     const userId = localStorage.getItem('userId');
     if (!userId) {
       errorMessage.value = 'Không tìm thấy thông tin người dùng!';
       return;
     }
     
-    // Gọi API update user
     const updateData = {
       fullName: profileForm.fullName,
       phone: profileForm.phone,
       avatar: profileForm.avatar
     };
     
-    const response = await api.put(`/users/${userId}`, updateData);
+    await api.put(`/users/${userId}`, updateData);
     
-    // Cập nhật authStore và localStorage
     authStore.fullName = profileForm.fullName;
     localStorage.setItem('fullName', profileForm.fullName);
     if (profileForm.avatar) localStorage.setItem('avatar', profileForm.avatar);
@@ -367,6 +619,66 @@ async function updateProfile() {
 function resetProfile() {
   loadUserProfile();
   showToast('Đã hủy thay đổi', 'info');
+}
+
+async function handleChangePassword() {
+  passwordErrorMessage.value = '';
+  passwordSuccessMessage.value = '';
+  
+  // Validate
+  if (!passwordForm.oldPassword) {
+    passwordErrorMessage.value = 'Vui lòng nhập mật khẩu hiện tại!';
+    return;
+  }
+  
+  if (!isPasswordValid.value) {
+    passwordErrorMessage.value = 'Vui lòng đáp ứng tất cả yêu cầu về mật khẩu mới!';
+    return;
+  }
+  
+  if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+    passwordErrorMessage.value = 'Mật khẩu xác nhận không khớp!';
+    return;
+  }
+  
+  if (passwordForm.oldPassword === passwordForm.newPassword) {
+    passwordErrorMessage.value = 'Mật khẩu mới không được trùng với mật khẩu cũ!';
+    return;
+  }
+  
+  passwordSaving.value = true;
+  
+  try {
+    const response = await api.post('/users/change-password', {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+      confirmNewPassword: passwordForm.confirmNewPassword
+    });
+    
+    passwordSuccessMessage.value = response.data.message || 'Đổi mật khẩu thành công!';
+    resetPasswordForm();
+    
+    setTimeout(() => {
+      passwordSuccessMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    passwordErrorMessage.value = error.response?.data?.message || 'Đổi mật khẩu thất bại!';
+  } finally {
+    passwordSaving.value = false;
+  }
+}
+
+function resetPasswordForm() {
+  passwordForm.oldPassword = '';
+  passwordForm.newPassword = '';
+  passwordForm.confirmNewPassword = '';
+  showOldPassword.value = false;
+  showNewPassword.value = false;
+  showConfirmPassword.value = false;
+}
+
+function checkPasswordStrength() {
+  // Trigger computed properties
 }
 
 function toggleDarkMode() {
@@ -398,7 +710,6 @@ function openAvatarModal() {
 }
 
 function selectAvatar(index) {
-  const colors = ['6366f1', '10b981', 'f59e0b', 'ef4444', '8b5cf6'];
   avatarUrl.value = `https://ui-avatars.com/api/?background=${colors[index - 1]}&color=fff&bold=true&length=2&size=80`;
 }
 
@@ -446,28 +757,62 @@ function formatDate(dateString) {
 </script>
 
 <style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .settings-container {
   padding: 24px;
   background: #f0f2f5;
   min-height: 100vh;
 }
 
+/* Header */
 .settings-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 24px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  color: white;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon svg {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.header-text {
+  flex: 1;
 }
 
 .settings-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .settings-subtitle {
-  color: #64748b;
   font-size: 14px;
+  opacity: 0.85;
 }
 
+/* Settings Grid */
 .settings-grid {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -477,8 +822,8 @@ function formatDate(dateString) {
 /* Sidebar Navigation */
 .settings-sidebar {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   height: fit-content;
 }
@@ -513,19 +858,28 @@ function formatDate(dateString) {
 }
 
 .nav-item.active {
-  background: #eef2ff;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.08));
   color: #6366f1;
 }
 
 .nav-icon {
-  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Content Panel */
 .settings-content {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
@@ -559,27 +913,27 @@ function formatDate(dateString) {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 8px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #334155;
 }
 
 .form-control {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -593,6 +947,130 @@ function formatDate(dateString) {
 .form-control:disabled {
   background: #f8fafc;
   cursor: not-allowed;
+  color: #64748b;
+}
+
+/* Input Group */
+.input-group-custom {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-group-icon {
+  position: absolute;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-group-icon svg {
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+}
+
+.input-group-custom .form-control {
+  padding-left: 44px;
+  padding-right: 44px;
+}
+
+.input-group-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-group-btn svg {
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+}
+
+.input-group-btn:hover svg {
+  color: #6366f1;
+}
+
+/* Password Strength */
+.password-strength {
+  margin-top: 12px;
+}
+
+.strength-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-level {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.strength-level.weak { background: #ef4444; }
+.strength-level.medium { background: #f59e0b; }
+.strength-level.strong { background: #10b981; }
+
+.strength-text {
+  font-size: 12px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.strength-text.weak { color: #ef4444; }
+.strength-text.medium { color: #f59e0b; }
+.strength-text.strong { color: #10b981; }
+
+/* Password Requirements */
+.password-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.requirement-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.requirement-item.met {
+  color: #10b981;
+}
+
+.requirement-item .req-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.requirement-item.met .req-icon svg {
+  stroke: #10b981;
+}
+
+.error-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 8px;
+}
+
+.error-hint svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Avatar Upload */
@@ -621,8 +1099,8 @@ function formatDate(dateString) {
 
 .avatar-edit {
   position: absolute;
-  bottom: 0;
-  right: 0;
+  bottom: 4px;
+  right: 4px;
   width: 32px;
   height: 32px;
   background: #6366f1;
@@ -633,7 +1111,17 @@ function formatDate(dateString) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.avatar-edit:hover {
+  transform: scale(1.1);
+  background: #4f46e5;
+}
+
+.avatar-edit svg {
+  width: 16px;
+  height: 16px;
 }
 
 .avatar-hint {
@@ -723,10 +1211,10 @@ input:checked + .toggle-slider:before {
 }
 
 .btn-primary, .btn-secondary {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -758,16 +1246,25 @@ input:checked + .toggle-slider:before {
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 8px 16px;
   font-size: 12px;
 }
 
 /* Alerts */
 .alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 20px;
   font-size: 14px;
+}
+
+.alert svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .alert-success {
@@ -776,10 +1273,22 @@ input:checked + .toggle-slider:before {
   border-left: 3px solid #10b981;
 }
 
+.alert-success svg {
+  stroke: #10b981;
+}
+
 .alert-danger {
   background: #fee2e2;
   color: #b91c1c;
   border-left: 3px solid #ef4444;
+}
+
+.alert-danger svg {
+  stroke: #ef4444;
+}
+
+.text-danger {
+  color: #ef4444;
 }
 
 /* Modal */
@@ -794,11 +1303,12 @@ input:checked + .toggle-slider:before {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modal-container {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   width: 500px;
   max-width: 90%;
   max-height: 90vh;
@@ -823,9 +1333,21 @@ input:checked + .toggle-slider:before {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
   cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn svg {
+  width: 20px;
+  height: 20px;
   color: #94a3b8;
+}
+
+.close-btn:hover svg {
+  color: #475569;
 }
 
 .modal-body {
@@ -851,8 +1373,8 @@ input:checked + .toggle-slider:before {
 .avatar-option {
   cursor: pointer;
   text-align: center;
-  padding: 8px;
-  border-radius: 12px;
+  padding: 12px;
+  border-radius: 16px;
   transition: all 0.2s;
 }
 
@@ -883,7 +1405,12 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+}
+
+.custom-icon svg {
+  width: 32px;
+  height: 32px;
+  color: #94a3b8;
 }
 
 .avatar-url-input {
@@ -900,9 +1427,15 @@ input:checked + .toggle-slider:before {
 
 .avatar-url-input input {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.avatar-url-input input:focus {
+  outline: none;
+  border-color: #6366f1;
 }
 
 /* Toast */
@@ -910,18 +1443,30 @@ input:checked + .toggle-slider:before {
   position: fixed;
   bottom: 24px;
   right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
   z-index: 1100;
   animation: slideIn 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.toast-message svg {
+  width: 18px;
+  height: 18px;
 }
 
 .toast-message.success {
   background: #10b981;
   color: white;
+}
+
+.toast-message.success svg {
+  stroke: white;
 }
 
 .toast-message.info {
@@ -932,6 +1477,10 @@ input:checked + .toggle-slider:before {
 .toast-message.error {
   background: #ef4444;
   color: white;
+}
+
+.mt-2 {
+  margin-top: 8px;
 }
 
 /* Animations */
@@ -947,12 +1496,17 @@ input:checked + .toggle-slider:before {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .settings-container {
+    padding: 16px;
+  }
+  
   .settings-grid {
     grid-template-columns: 1fr;
   }
   
-  .settings-sidebar {
-    order: 2;
+  .settings-header {
+    flex-direction: column;
+    text-align: center;
   }
   
   .form-row {
@@ -973,7 +1527,15 @@ input:checked + .toggle-slider:before {
     bottom: 16px;
     right: 16px;
     left: 16px;
-    text-align: center;
+    justify-content: center;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .form-actions button {
+    width: 100%;
   }
 }
 </style>

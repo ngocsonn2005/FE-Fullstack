@@ -2,6 +2,9 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import Antd from 'ant-design-vue'
+import './assets/dark-mode.css'
+
 
 // Import Bootstrap CSS (nếu dùng Bootstrap)
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -12,4 +15,5 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+app.use(Antd)
 app.mount('#app')
