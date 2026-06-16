@@ -311,11 +311,85 @@
         </div>
       </div>
     </section>
+
+    <!-- ✅ MODAL YÊU CẦU ĐỔI MẬT KHẨU -->
+    <div class="modal-overlay" :class="{ show: showForcePasswordModal }" v-if="showForcePasswordModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>⚠️ Yêu cầu đổi mật khẩu</h3>
+            <button class="modal-close" @click="closeForcePasswordModal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="force-password-icon">🔒</div>
+            <p class="force-password-text">
+              Đây là lần đầu tiên bạn đăng nhập hoặc tài khoản yêu cầu đổi mật khẩu.
+              Vui lòng đổi mật khẩu mới để tiếp tục.
+            </p>
+            
+            <div class="field">
+              <label>Mật khẩu mới <span class="required">*</span></label>
+              <div class="password-wrap">
+                <input 
+                  :type="showForcePassword ? 'text' : 'password'" 
+                  v-model="forcePasswordForm.newPassword" 
+                  placeholder="Nhập mật khẩu mới"
+                  required
+                  @input="checkForcePasswordStrength"
+                />
+                <button type="button" class="eye-btn" @click="showForcePassword = !showForcePassword">
+                  {{ showForcePassword ? '🙈' : '👁' }}
+                </button>
+              </div>
+              <!-- Hiển thị độ mạnh mật khẩu -->
+              <div v-if="forcePasswordForm.newPassword" class="password-strength">
+                <div class="strength-bar" :class="forcePasswordStrength.class"></div>
+                <span class="strength-text">{{ forcePasswordStrength.text }}</span>
+              </div>
+              <ul class="password-requirements">
+                <li :class="{ met: forcePasswordForm.newPassword.length >= 6 }">✓ Ít nhất 6 ký tự</li>
+                <li :class="{ met: forceHasSpecialChar }">✓ Ít nhất 1 ký tự đặc biệt (!@#$%^&*)</li>
+                <li :class="{ met: forceHasUpperCase }">✓ Ít nhất 1 chữ hoa</li>
+                <li :class="{ met: forceHasNumber }">✓ Ít nhất 1 số</li>
+              </ul>
+            </div>
+
+            <div class="field">
+              <label>Xác nhận mật khẩu mới <span class="required">*</span></label>
+              <div class="password-wrap">
+                <input 
+                  :type="showForceConfirm ? 'text' : 'password'" 
+                  v-model="forcePasswordForm.confirmPassword" 
+                  placeholder="Xác nhận mật khẩu mới"
+                  required
+                />
+                <button type="button" class="eye-btn" @click="showForceConfirm = !showForceConfirm">
+                  {{ showForceConfirm ? '🙈' : '👁' }}
+                </button>
+              </div>
+              <div v-if="forcePasswordForm.confirmPassword && forcePasswordForm.newPassword !== forcePasswordForm.confirmPassword" class="error-hint">
+                Mật khẩu xác nhận không khớp
+              </div>
+            </div>
+
+            <div v-if="forceError" class="message error">
+              ⚠️ {{ forceError }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel" @click="closeForcePasswordModal">Hủy</button>
+            <button class="btn-primary" @click="handleForceChangePassword" :disabled="forceChanging">
+              {{ forceChanging ? 'Đang xử lý...' : 'Đổi mật khẩu' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
@@ -360,6 +434,40 @@ const resetting = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
+// ✅ State cho Force Password Change
+const showForcePasswordModal = ref(false);
+const showForcePassword = ref(false);
+const showForceConfirm = ref(false);
+const forceChanging = ref(false);
+const forceError = ref('');
+const tempToken = ref('');
+const tempUserData = ref(null);
+
+const forcePasswordForm = ref({
+  newPassword: '',
+  confirmPassword: ''
+});
+
+// ✅ Computed cho Force Password
+const forceHasSpecialChar = computed(() => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(forcePasswordForm.value.newPassword));
+const forceHasUpperCase = computed(() => /[A-Z]/.test(forcePasswordForm.value.newPassword));
+const forceHasNumber = computed(() => /[0-9]/.test(forcePasswordForm.value.newPassword));
+
+const forcePasswordStrength = computed(() => {
+  const pwd = forcePasswordForm.value.newPassword;
+  if (!pwd) return { class: '', text: '' };
+  
+  let strength = 0;
+  if (pwd.length >= 6) strength++;
+  if (forceHasSpecialChar.value) strength++;
+  if (forceHasUpperCase.value) strength++;
+  if (forceHasNumber.value) strength++;
+  
+  if (strength <= 2) return { class: 'weak', text: 'Yếu' };
+  if (strength === 3) return { class: 'medium', text: 'Trung bình' };
+  return { class: 'strong', text: 'Mạnh' };
+});
+
 const switchMode = (nextMode) => {
   mode.value = nextMode;
   errorMessage.value = '';
@@ -387,6 +495,7 @@ const saveAuthData = (data) => {
   };
 };
 
+// ✅ SỬA HÀM handleLogin - Thêm xử lý requirePasswordChange và khóa tài khoản
 const handleLogin = async () => {
   errorMessage.value = '';
   successMessage.value = '';
@@ -398,7 +507,34 @@ const handleLogin = async () => {
       password: loginForm.value.password
     });
 
-    saveAuthData(response.data);
+    const data = response.data;
+
+    // ✅ Kiểm tra tài khoản bị khóa (nếu backend trả về isLocked)
+    if (data.isLocked) {
+      errorMessage.value = 'Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
+      loading.value = false;
+      return;
+    }
+
+    // ✅ Kiểm tra yêu cầu đổi mật khẩu
+    if (data.requirePasswordChange) {
+      // Lưu token tạm thời và thông tin user
+      tempToken.value = data.token;
+      tempUserData.value = data;
+      
+      // Hiển thị modal đổi mật khẩu
+      showForcePasswordModal.value = true;
+      forceError.value = '';
+      forcePasswordForm.value = {
+        newPassword: '',
+        confirmPassword: ''
+      };
+      loading.value = false;
+      return;
+    }
+
+    // Đăng nhập bình thường
+    saveAuthData(data);
 
     if (rememberMe.value) {
       localStorage.setItem('rememberMe', 'true');
@@ -408,12 +544,96 @@ const handleLogin = async () => {
 
     router.push('/app/dashboard');
   } catch (error) {
-    errorMessage.value =
-      error.response?.data?.message ||
-      'Đăng nhập thất bại! Kiểm tra lại tài khoản hoặc mật khẩu.';
+    // ✅ Kiểm tra nếu lỗi là do tài khoản bị khóa từ backend
+    const errorMsg = error.response?.data?.message || '';
+    if (errorMsg.includes('khóa') || errorMsg.includes('lock')) {
+      errorMessage.value = 'Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
+    } else {
+      errorMessage.value = errorMsg || 'Đăng nhập thất bại! Kiểm tra lại tài khoản hoặc mật khẩu.';
+    }
   } finally {
     loading.value = false;
   }
+};
+
+// ✅ HÀM ĐỔI MẬT KHẨU BẮT BUỘC
+const handleForceChangePassword = async () => {
+  forceError.value = '';
+
+  // Kiểm tra mật khẩu
+  if (forcePasswordForm.value.newPassword.length < 6) {
+    forceError.value = 'Mật khẩu phải có ít nhất 6 ký tự!';
+    return;
+  }
+
+  if (!forceHasSpecialChar.value) {
+    forceError.value = 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%^&*)!';
+    return;
+  }
+
+  if (!forceHasUpperCase.value) {
+    forceError.value = 'Mật khẩu phải chứa ít nhất 1 chữ hoa!';
+    return;
+  }
+
+  if (!forceHasNumber.value) {
+    forceError.value = 'Mật khẩu phải chứa ít nhất 1 số!';
+    return;
+  }
+
+  if (forcePasswordForm.value.newPassword !== forcePasswordForm.value.confirmPassword) {
+    forceError.value = 'Mật khẩu xác nhận không khớp!';
+    return;
+  }
+
+  forceChanging.value = true;
+
+  try {
+    // Gọi API đổi mật khẩu với token tạm thời
+    await api.post('/auth/force-change-password', {
+      newPassword: forcePasswordForm.value.newPassword
+    }, {
+      headers: {
+        Authorization: `Bearer ${tempToken.value}`
+      }
+    });
+
+    // Đóng modal
+    showForcePasswordModal.value = false;
+
+    // Lưu token và thông tin user
+    saveAuthData(tempUserData.value);
+
+    if (rememberMe.value) {
+      localStorage.setItem('rememberMe', 'true');
+    } else {
+      localStorage.removeItem('rememberMe');
+    }
+
+    // Chuyển đến dashboard
+    router.push('/app/dashboard');
+  } catch (error) {
+    forceError.value = error.response?.data?.message || 'Đổi mật khẩu thất bại!';
+  } finally {
+    forceChanging.value = false;
+  }
+};
+
+// ✅ Đóng modal force password
+const closeForcePasswordModal = () => {
+  showForcePasswordModal.value = false;
+  forceError.value = '';
+  forcePasswordForm.value = {
+    newPassword: '',
+    confirmPassword: ''
+  };
+  // Quay lại trang đăng nhập
+  switchMode('login');
+};
+
+// ✅ Kiểm tra strength cho force password
+const checkForcePasswordStrength = () => {
+  // Chỉ trigger computed
 };
 
 const handleRegister = async () => {
@@ -1082,6 +1302,237 @@ const handleGoogleAuth = () => {
   .auth-tabs button {
     min-height: 52px;
     font-size: 18px;
+  }
+}
+
+/* ✅ Thêm style cho Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 480px;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #fca5a5;
+}
+
+.modal-header h3 {
+  color: #991b1b;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close {
+  background: rgba(153, 27, 27, 0.1);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: #991b1b;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: rgba(153, 27, 27, 0.2);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel {
+  padding: 10px 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.btn-primary {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0d63ff, #004bb8);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(13, 99, 255, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.force-password-icon {
+  text-align: center;
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.force-password-text {
+  text-align: center;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.error-hint {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.password-strength {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strength-bar {
+  width: 60px;
+  height: 4px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.strength-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  transition: all 0.3s;
+}
+
+.strength-bar.weak::after { background: #ef4444; width: 33%; }
+.strength-bar.medium::after { background: #f59e0b; width: 66%; }
+.strength-bar.strong::after { background: #10b981; width: 100%; }
+
+.strength-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.password-requirements {
+  list-style: none;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0;
+}
+
+.password-requirements li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.password-requirements li.met {
+  color: #10b981;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive cho modal */
+@media (max-width: 520px) {
+  .modal-dialog {
+    max-width: 100%;
+    margin: 10px;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+  }
+  
+  .btn-cancel,
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

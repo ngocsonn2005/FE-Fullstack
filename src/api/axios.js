@@ -2,12 +2,12 @@ import axios from 'axios';
 
 // Cấu hình API cho từng service
 export const userApi = axios.create({
-  baseURL: 'http://192.168.30.49:5000/api',  // User Service
+  baseURL: 'http://192.168.1.12:5000/api',  // User Service
   headers: { 'Content-Type': 'application/json' }
 });
 
 export const orderApi = axios.create({
-  baseURL: 'http://192.168.30.1:5002/api',  // IP thật của máy Order Service
+  baseURL: 'http://192.168.30.109:5002/api',  // IP thật của máy Order Service
   headers: { 'Content-Type': 'application/json' }
 });
 

@@ -1,385 +1,3 @@
-<script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import api from '@/api/axios';
-
-// State
-const activeTab = ref('active');
-const activeUsers = ref([]);
-const deletedUsers = ref([]);
-const showDialog = ref(false);
-const showDetailModal = ref(false);
-const editingUser = ref(null);
-const selectedUser = ref(null);
-const searchKeyword = ref('');
-const filterRole = ref('');
-const loading = ref(false);
-const statistics = ref({
-  totalUsers: 0,
-  totalAdmin: 0,
-  totalSales: 0,
-  totalWarehouse: 0,
-  totalLocked: 0,
-  totalDeleted: 0
-});
-
-// Pagination state
-const activeCurrentPage = ref(1);
-const deletedCurrentPage = ref(1);
-const itemsPerPage = ref(10);
-
-const formData = ref({
-  username: '',
-  password: '',
-  fullName: '',
-  email: '',
-  phone: '',
-  role: 'Sales',
-  avatar: ''
-});
-
-const filteredUsers = computed(() => {
-  let users = [...activeUsers.value];
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase();
-    users = users.filter(u => 
-      (u.username && u.username.toLowerCase().includes(keyword)) ||
-      (u.fullName && u.fullName.toLowerCase().includes(keyword)) ||
-      (u.email && u.email.toLowerCase().includes(keyword)) ||
-      (u.phone && u.phone.includes(keyword)) ||
-      (u.role && u.role.toLowerCase().includes(keyword))
-    );
-  }
-  if (filterRole.value) {
-    users = users.filter(u => u.role === filterRole.value);
-  }
-  return users;
-});
-
-// Pagination computed properties
-const paginatedActiveUsers = computed(() => {
-  const start = (activeCurrentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
-  return filteredUsers.value.slice(start, end);
-});
-
-const paginatedDeletedUsers = computed(() => {
-  const start = (deletedCurrentPage.value - 1) * itemsPerPage.value;
-  const end = start + itemsPerPage.value;
-  return deletedUsers.value.slice(start, end);
-});
-
-const totalActivePages = computed(() => {
-  return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
-});
-
-const totalDeletedPages = computed(() => {
-  return Math.ceil(deletedUsers.value.length / itemsPerPage.value);
-});
-
-// Reset to first page when filters change
-const resetActivePage = () => {
-  activeCurrentPage.value = 1;
-};
-
-const resetDeletedPage = () => {
-  deletedCurrentPage.value = 1;
-};
-
-// Watch for filter changes
-watch([searchKeyword, filterRole], () => {
-  resetActivePage();
-});
-
-onMounted(async () => {
-  await loadData();
-  await loadStatistics();
-});
-
-async function loadData() {
-  loading.value = true;
-  await Promise.all([loadActiveUsers(), loadDeletedUsers()]);
-  loading.value = false;
-}
-
-async function loadActiveUsers() {
-  try {
-    const res = await api.get('/users');
-    activeUsers.value = res.data;
-    resetActivePage();
-  } catch (error) {
-    console.error('Error loading active users:', error);
-  }
-}
-
-async function loadDeletedUsers() {
-  try {
-    const res = await api.get('/users/deleted');
-    deletedUsers.value = res.data;
-    resetDeletedPage();
-  } catch (error) {
-    console.error('Error loading deleted users:', error);
-  }
-}
-
-async function loadStatistics() {
-  try {
-    const res = await api.get('/users/statistics');
-    statistics.value = res.data;
-  } catch (error) {
-    console.error('Error loading statistics:', error);
-  }
-}
-
-async function saveUser() {
-  try {
-    if (editingUser.value) {
-      const updateData = {
-        fullName: formData.value.fullName,
-        role: formData.value.role,
-        email: formData.value.email,
-        phone: formData.value.phone,
-        avatar: formData.value.avatar
-      };
-      if (formData.value.password && formData.value.password.trim() !== '') {
-        updateData.password = formData.value.password;
-      }
-      await api.put(`/users/${editingUser.value.id}`, updateData);
-      alert('Cập nhật user thành công!');
-    } else {
-      if (!formData.value.username || !formData.value.password || !formData.value.fullName) {
-        alert('Vui lòng nhập đầy đủ thông tin!');
-        return;
-      }
-      await api.post('/users', formData.value);
-      alert('Thêm user thành công!');
-    }
-    showDialog.value = false;
-    resetForm();
-    await loadData();
-    await loadStatistics();
-  } catch (error) {
-    console.error('Error saving user:', error);
-    alert(error.response?.data?.message || 'Lưu thất bại!');
-  }
-}
-
-async function deleteUser(id) {
-  if (confirm('Bạn có chắc muốn xóa user này? User sẽ được chuyển vào thùng rác.')) {
-    try {
-      await api.delete(`/users/${id}`);
-      await loadData();
-      await loadStatistics();
-      alert('User đã được chuyển vào thùng rác!');
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('Xóa thất bại!');
-    }
-  }
-}
-
-async function restoreUser(id) {
-  if (confirm('Bạn có chắc muốn khôi phục user này?')) {
-    try {
-      await api.post(`/users/${id}/restore`);
-      await loadData();
-      await loadStatistics();
-      alert('Khôi phục user thành công!');
-    } catch (error) {
-      console.error('Error restoring user:', error);
-      alert('Khôi phục thất bại!');
-    }
-  }
-}
-
-async function restoreAll() {
-  if (confirm('Bạn có chắc muốn khôi phục TẤT CẢ user trong thùng rác?')) {
-    try {
-      await api.post('/users/restore-all');
-      await loadData();
-      await loadStatistics();
-      alert('Đã khôi phục tất cả user!');
-    } catch (error) {
-      console.error('Error restoring all:', error);
-      alert('Khôi phục thất bại!');
-    }
-  }
-}
-
-async function permanentDeleteUser(id) {
-  if (confirm('⚠️ CẢNH BÁO: Bạn sẽ xóa vĩnh viễn user này. Hành động này KHÔNG THỂ HOÀN TÁC!')) {
-    try {
-      await api.delete(`/users/${id}/permanent`);
-      await loadData();
-      await loadStatistics();
-      alert('Đã xóa vĩnh viễn user!');
-    } catch (error) {
-      console.error('Error permanently deleting user:', error);
-      alert('Xóa thất bại!');
-    }
-  }
-}
-
-async function emptyTrash() {
-  if (confirm('⚠️ CẢNH BÁO: Bạn sẽ xóa vĩnh viễn TẤT CẢ user trong thùng rác. Hành động này KHÔNG THỂ HOÀN TÁC!')) {
-    try {
-      await api.delete('/users/empty-trash');
-      await loadData();
-      await loadStatistics();
-      alert('Đã dọn sạch thùng rác!');
-    } catch (error) {
-      console.error('Error emptying trash:', error);
-      alert('Xóa thất bại!');
-    }
-  }
-}
-
-function editUser(user) {
-  editingUser.value = user;
-  formData.value = {
-    username: user.username,
-    password: '',
-    fullName: user.fullName || '',
-    email: user.email || '',
-    phone: user.phone || '',
-    role: user.role || 'Sales',
-    avatar: user.avatar || ''
-  };
-  showDialog.value = true;
-}
-
-function viewDetail(user) {
-  selectedUser.value = user;
-  showDetailModal.value = true;
-}
-
-function openAddModal() {
-  editingUser.value = null;
-  formData.value = {
-    username: '',
-    password: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    role: 'Sales',
-    avatar: ''
-  };
-  showDialog.value = true;
-}
-
-function resetForm() {
-  editingUser.value = null;
-  formData.value = {
-    username: '',
-    password: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    role: 'Sales',
-    avatar: ''
-  };
-}
-
-function resetFilters() {
-  searchKeyword.value = '';
-  filterRole.value = '';
-  resetActivePage();
-}
-
-function getRoleBadge(role) {
-  const badges = { 'Admin': 'role-admin', 'Sales': 'role-sales', 'Warehouse': 'role-warehouse' };
-  return badges[role] || 'role-default';
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '--/--/----';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN');
-}
-
-function closeModal() {
-  showDialog.value = false;
-}
-
-function closeDetailModal() {
-  showDetailModal.value = false;
-}
-
-function handleImageError(event) {
-  event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
-}
-
-// Pagination methods
-function goToActivePage(page) {
-  if (page >= 1 && page <= totalActivePages.value) {
-    activeCurrentPage.value = page;
-  }
-}
-
-function goToDeletedPage(page) {
-  if (page >= 1 && page <= totalDeletedPages.value) {
-    deletedCurrentPage.value = page;
-  }
-}
-
-function getActivePageNumbers() {
-  const total = totalActivePages.value;
-  const current = activeCurrentPage.value;
-  const delta = 2;
-  const range = [];
-  const rangeWithDots = [];
-  let l;
-
-  for (let i = 1; i <= total; i++) {
-    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
-      range.push(i);
-    }
-  }
-
-  for (let i of range) {
-    if (l) {
-      if (i - l === 2) {
-        rangeWithDots.push(l + 1);
-      } else if (i - l !== 1) {
-        rangeWithDots.push('...');
-      }
-    }
-    rangeWithDots.push(i);
-    l = i;
-  }
-
-  return rangeWithDots;
-}
-
-function getDeletedPageNumbers() {
-  const total = totalDeletedPages.value;
-  const current = deletedCurrentPage.value;
-  const delta = 2;
-  const range = [];
-  const rangeWithDots = [];
-  let l;
-
-  for (let i = 1; i <= total; i++) {
-    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
-      range.push(i);
-    }
-  }
-
-  for (let i of range) {
-    if (l) {
-      if (i - l === 2) {
-        rangeWithDots.push(l + 1);
-      } else if (i - l !== 1) {
-        rangeWithDots.push('...');
-      }
-    }
-    rangeWithDots.push(i);
-    l = i;
-  }
-
-  return rangeWithDots;
-}
-</script>
-
 <template>
   <div class="user-management">
     <!-- Header -->
@@ -395,10 +13,10 @@ function getDeletedPageNumbers() {
         </div>
         <div class="header-text">
           <h1>Quản lý người dùng</h1>
-          <p>Tất cả người dùng trong hệ thống</p>
+          <p>{{ activeTab === 'role' ? 'Phân quyền người dùng trong hệ thống' : 'Tất cả người dùng trong hệ thống' }}</p>
         </div>
       </div>
-      <button class="btn-primary" @click="openAddModal">
+      <button class="btn-primary" @click="openAddModal" v-if="activeTab !== 'role'">
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"/>
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -407,8 +25,8 @@ function getDeletedPageNumbers() {
       </button>
     </div>
 
-    <!-- Statistics -->
-    <div class="stats-grid">
+    <!-- Statistics - Ẩn khi ở tab Phân quyền -->
+    <div class="stats-grid" v-if="activeTab !== 'role'">
       <div class="stat-card total">
         <div class="stat-icon-bg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -486,8 +104,8 @@ function getDeletedPageNumbers() {
       </div>
     </div>
 
-    <!-- Search & Filter -->
-    <div class="filter-bar">
+    <!-- Search & Filter - Ẩn khi ở tab Phân quyền -->
+    <div class="filter-bar" v-if="activeTab !== 'role'">
       <div class="search-wrapper">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/>
@@ -534,9 +152,10 @@ function getDeletedPageNumbers() {
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
         </svg>
-        Người dùng đang hoạt động
+        Người dùng
         <span class="tab-badge">{{ activeUsers.length }}</span>
       </button>
+      
       <button 
         class="tab-button" 
         :class="{ active: activeTab === 'deleted' }"
@@ -549,16 +168,34 @@ function getDeletedPageNumbers() {
         Thùng rác
         <span class="tab-badge danger">{{ deletedUsers.length }}</span>
       </button>
+
+      <!-- ✅ THÊM TAB PHÂN QUYỀN -->
+      <button 
+        class="tab-button" 
+        :class="{ active: activeTab === 'role' }"
+        @click="activeTab = 'role'"
+      >
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        Phân quyền
+        <span class="tab-badge">{{ activeUsers.length }}</span>
+      </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading && activeTab !== 'role'" class="loading-container">
       <div class="spinner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         </svg>
       </div>
       <p>Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- ✅ TAB PHÂN QUYỀN -->
+    <div v-else-if="activeTab === 'role'" class="role-tab-content">
+      <RoleManagement />
     </div>
 
     <!-- Active Users Table -->
@@ -572,7 +209,8 @@ function getDeletedPageNumbers() {
               <th>Họ và tên</th>
               <th>Email</th>
               <th>Vai trò</th>
-              <th style="width: 150px">Thao tác</th>
+              <th>Trạng thái</th>
+              <th style="width: 200px">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -598,8 +236,12 @@ function getDeletedPageNumbers() {
               </td>
               <td>
                 <span :class="'role-badge ' + getRoleBadge(user.role)">
-                  {{ user.role }}
+                  {{ getRoleLabel(user.role) }}
                 </span>
+              </td>
+              <td>
+                <span v-if="user.isLocked" class="status-badge locked">🔒 Bị khóa</span>
+                <span v-else class="status-badge active">✅ Hoạt động</span>
               </td>
               <td>
                 <div class="action-buttons">
@@ -613,6 +255,19 @@ function getDeletedPageNumbers() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button v-if="!user.isLocked" class="action-btn lock" @click="toggleLockUser(user)" title="Khóa tài khoản">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </button>
+                  <button v-else class="action-btn unlock" @click="toggleLockUser(user)" title="Mở khóa tài khoản">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      <line x1="12" y1="15" x2="12" y2="17"/>
                     </svg>
                   </button>
                   <button class="action-btn delete" @click="deleteUser(user.id)" title="Xóa">
@@ -740,7 +395,7 @@ function getDeletedPageNumbers() {
               <td>{{ user.fullName || '---' }}</td>
               <td>
                 <span :class="'role-badge ' + getRoleBadge(user.role)">
-                  {{ user.role }}
+                  {{ getRoleLabel(user.role) }}
                 </span>
               </td>
               <td class="date-text">{{ formatDate(user.deletedAt) }}</td>
@@ -834,11 +489,28 @@ function getDeletedPageNumbers() {
               <label>Tên đăng nhập <span class="required">*</span></label>
               <input class="form-input" v-model="formData.username" :disabled="!!editingUser" placeholder="Nhập tên đăng nhập">
             </div>
-            <div class="form-group">
-              <label>Mật khẩu <span class="required" v-if="!editingUser">*</span></label>
-              <input class="form-input" type="password" v-model="formData.password" :placeholder="editingUser ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'">
-              <small v-if="editingUser" class="form-hint">Để trống nếu không muốn thay đổi mật khẩu</small>
+            
+            <!-- Phần hiển thị mật khẩu mặc định khi thêm mới -->
+            <div class="form-group" v-if="!editingUser">
+              <label>Mật khẩu mặc định</label>
+              <div class="password-default-box">
+                <span class="password-display">{{ defaultPassword }}</span>
+                <button class="btn-copy" @click="copyDefaultPassword" title="Sao chép">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+              <small class="form-hint">Người dùng sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu</small>
             </div>
+            
+            <div class="form-group" v-else>
+              <label>Mật khẩu mới</label>
+              <input class="form-input" type="password" v-model="formData.password" placeholder="Để trống nếu không đổi">
+              <small class="form-hint">Để trống nếu không muốn thay đổi mật khẩu</small>
+            </div>
+            
             <div class="form-group">
               <label>Họ và tên <span class="required">*</span></label>
               <input class="form-input" v-model="formData.fullName" placeholder="Nhập họ tên đầy đủ">
@@ -865,6 +537,15 @@ function getDeletedPageNumbers() {
               <label>URL Ảnh đại diện</label>
               <input class="form-input" v-model="formData.avatar" placeholder="https://example.com/avatar.jpg">
             </div>
+            
+            <!-- Checkbox yêu cầu đổi mật khẩu khi thêm mới -->
+            <div class="form-group" v-if="!editingUser">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="forcePasswordChange">
+                <span>Yêu cầu đổi mật khẩu khi đăng nhập lần đầu</span>
+              </label>
+              <small class="form-hint">Nếu bỏ chọn, người dùng sẽ đăng nhập với mật khẩu mặc định mà không bị yêu cầu đổi</small>
+            </div>
           </div>
           <div class="modal-footer">
             <button class="btn-cancel" @click="closeModal">Hủy bỏ</button>
@@ -890,14 +571,16 @@ function getDeletedPageNumbers() {
           <div class="modal-body">
             <div class="detail-avatar-section">
               <img 
-                :src="selectedUser?.avatar || 'data:image/svg+xml;base64,...'" 
+                :src="selectedUser?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg=='" 
                 class="detail-avatar"
                 @error="handleImageError"
               >
               <h4>{{ selectedUser?.fullName }}</h4>
               <span :class="'role-badge ' + getRoleBadge(selectedUser?.role)">
-                {{ selectedUser?.role }}
+                {{ getRoleLabel(selectedUser?.role) }}
               </span>
+              <span v-if="selectedUser?.isLocked" class="status-badge locked" style="margin-top: 8px;">🔒 Tài khoản bị khóa</span>
+              <span v-else class="status-badge active" style="margin-top: 8px;">✅ Tài khoản hoạt động</span>
             </div>
             <div class="detail-info">
               <div class="info-row">
@@ -920,6 +603,14 @@ function getDeletedPageNumbers() {
                 <span class="info-label">Ngày tạo</span>
                 <span class="info-value">{{ formatDate(selectedUser?.createdAt) }}</span>
               </div>
+              <div class="info-row">
+                <span class="info-label">Lần đăng nhập cuối</span>
+                <span class="info-value">{{ formatDate(selectedUser?.lastLoginAt) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Số lần đăng nhập</span>
+                <span class="info-value">{{ selectedUser?.loginCount || 0 }}</span>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -928,8 +619,459 @@ function getDeletedPageNumbers() {
         </div>
       </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div v-if="toast.show" :class="['toast-message', toast.type]">
+      {{ toast.message }}
+    </div>
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted, computed, watch } from 'vue';
+import api from '@/api/axios';
+// ✅ Import component RoleManagement
+import RoleManagement from './RoleManagement.vue';
+
+// State
+const activeTab = ref('active');
+const activeUsers = ref([]);
+const deletedUsers = ref([]);
+const showDialog = ref(false);
+const showDetailModal = ref(false);
+const editingUser = ref(null);
+const selectedUser = ref(null);
+const searchKeyword = ref('');
+const filterRole = ref('');
+const loading = ref(false);
+const statistics = ref({
+  totalUsers: 0,
+  totalAdmin: 0,
+  totalSales: 0,
+  totalWarehouse: 0,
+  totalLocked: 0,
+  totalDeleted: 0
+});
+
+// Pagination state
+const activeCurrentPage = ref(1);
+const deletedCurrentPage = ref(1);
+const itemsPerPage = ref(10);
+
+// State mới
+const defaultPassword = ref('123456');
+const forcePasswordChange = ref(true);
+const toast = ref({ show: false, message: '', type: 'success' });
+
+const formData = ref({
+  username: '',
+  password: '',
+  fullName: '',
+  email: '',
+  phone: '',
+  role: 'Sales',
+  avatar: ''
+});
+
+const filteredUsers = computed(() => {
+  let users = [...activeUsers.value];
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase();
+    users = users.filter(u => 
+      (u.username && u.username.toLowerCase().includes(keyword)) ||
+      (u.fullName && u.fullName.toLowerCase().includes(keyword)) ||
+      (u.email && u.email.toLowerCase().includes(keyword)) ||
+      (u.phone && u.phone.includes(keyword)) ||
+      (u.role && u.role.toLowerCase().includes(keyword))
+    );
+  }
+  if (filterRole.value) {
+    users = users.filter(u => u.role === filterRole.value);
+  }
+  return users;
+});
+
+// Pagination computed properties
+const paginatedActiveUsers = computed(() => {
+  const start = (activeCurrentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredUsers.value.slice(start, end);
+});
+
+const paginatedDeletedUsers = computed(() => {
+  const start = (deletedCurrentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return deletedUsers.value.slice(start, end);
+});
+
+const totalActivePages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
+});
+
+const totalDeletedPages = computed(() => {
+  return Math.ceil(deletedUsers.value.length / itemsPerPage.value);
+});
+
+// Reset to first page when filters change
+const resetActivePage = () => {
+  activeCurrentPage.value = 1;
+};
+
+const resetDeletedPage = () => {
+  deletedCurrentPage.value = 1;
+};
+
+// Watch for filter changes
+watch([searchKeyword, filterRole], () => {
+  resetActivePage();
+});
+
+onMounted(async () => {
+  await loadData();
+  await loadStatistics();
+});
+
+async function loadData() {
+  loading.value = true;
+  await Promise.all([loadActiveUsers(), loadDeletedUsers()]);
+  loading.value = false;
+}
+
+async function loadActiveUsers() {
+  try {
+    const res = await api.get('/users');
+    activeUsers.value = res.data;
+    resetActivePage();
+  } catch (error) {
+    console.error('Error loading active users:', error);
+  }
+}
+
+async function loadDeletedUsers() {
+  try {
+    const res = await api.get('/users/deleted');
+    deletedUsers.value = res.data;
+    resetDeletedPage();
+  } catch (error) {
+    console.error('Error loading deleted users:', error);
+  }
+}
+
+async function loadStatistics() {
+  try {
+    const res = await api.get('/users/statistics');
+    statistics.value = res.data;
+  } catch (error) {
+    console.error('Error loading statistics:', error);
+  }
+}
+
+// Hàm getRoleLabel
+function getRoleLabel(role) {
+  const labels = {
+    'Admin': 'Quản trị viên',
+    'Sales': 'Nhân viên bán hàng',
+    'Warehouse': 'Nhân viên kho'
+  };
+  return labels[role] || role;
+}
+
+function getRoleBadge(role) {
+  const badges = { 'Admin': 'role-admin', 'Sales': 'role-sales', 'Warehouse': 'role-warehouse' };
+  return badges[role] || 'role-default';
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '--/--/----';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN');
+}
+
+function handleImageError(event) {
+  event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
+}
+
+function showToast(message, type = 'success') {
+  toast.value = { show: true, message, type };
+  setTimeout(() => {
+    toast.value.show = false;
+  }, 3000);
+}
+
+// Hàm copy mật khẩu mặc định
+function copyDefaultPassword() {
+  navigator.clipboard.writeText(defaultPassword.value);
+  showToast('Đã sao chép mật khẩu mặc định!', 'success');
+}
+
+// Hàm toggle khóa/mở khóa
+async function toggleLockUser(user) {
+  const action = user.isLocked ? 'mở khóa' : 'khóa';
+  if (confirm(`Bạn có chắc muốn ${action} tài khoản "${user.username}"?`)) {
+    try {
+      const endpoint = user.isLocked ? 'unlock' : 'lock';
+      await api.post(`/users/${user.id}/${endpoint}`);
+      await loadData();
+      await loadStatistics();
+      showToast(`Đã ${action} tài khoản "${user.username}"!`, 'success');
+    } catch (error) {
+      console.error('Error toggling lock:', error);
+      showToast(`Không thể ${action} tài khoản!`, 'error');
+    }
+  }
+}
+
+// Hàm saveUser
+async function saveUser() {
+  try {
+    if (editingUser.value) {
+      const updateData = {
+        fullName: formData.value.fullName,
+        role: formData.value.role,
+        email: formData.value.email,
+        phone: formData.value.phone,
+        avatar: formData.value.avatar
+      };
+      if (formData.value.password && formData.value.password.trim() !== '') {
+        updateData.password = formData.value.password;
+      }
+      await api.put(`/users/${editingUser.value.id}`, updateData);
+      showToast('Cập nhật user thành công!', 'success');
+    } else {
+      if (!formData.value.username || !formData.value.fullName) {
+        showToast('Vui lòng nhập đầy đủ thông tin!', 'error');
+        return;
+      }
+      
+      const newUser = {
+        username: formData.value.username,
+        password: defaultPassword.value,
+        fullName: formData.value.fullName,
+        email: formData.value.email,
+        phone: formData.value.phone,
+        role: formData.value.role,
+        avatar: formData.value.avatar,
+        forcePasswordChange: forcePasswordChange.value
+      };
+      
+      await api.post('/users', newUser);
+      showToast(`Thêm user thành công! Mật khẩu mặc định: ${defaultPassword.value}`, 'success');
+    }
+    showDialog.value = false;
+    resetForm();
+    await loadData();
+    await loadStatistics();
+  } catch (error) {
+    console.error('Error saving user:', error);
+    showToast(error.response?.data?.message || 'Lưu thất bại!', 'error');
+  }
+}
+
+async function deleteUser(id) {
+  if (confirm('Bạn có chắc muốn xóa user này? User sẽ được chuyển vào thùng rác.')) {
+    try {
+      await api.delete(`/users/${id}`);
+      await loadData();
+      await loadStatistics();
+      showToast('User đã được chuyển vào thùng rác!', 'success');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showToast('Xóa thất bại!', 'error');
+    }
+  }
+}
+
+async function restoreUser(id) {
+  if (confirm('Bạn có chắc muốn khôi phục user này?')) {
+    try {
+      await api.post(`/users/${id}/restore`);
+      await loadData();
+      await loadStatistics();
+      showToast('Khôi phục user thành công!', 'success');
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      showToast('Khôi phục thất bại!', 'error');
+    }
+  }
+}
+
+async function restoreAll() {
+  if (confirm('Bạn có chắc muốn khôi phục TẤT CẢ user trong thùng rác?')) {
+    try {
+      await api.post('/users/restore-all');
+      await loadData();
+      await loadStatistics();
+      showToast('Đã khôi phục tất cả user!', 'success');
+    } catch (error) {
+      console.error('Error restoring all:', error);
+      showToast('Khôi phục thất bại!', 'error');
+    }
+  }
+}
+
+async function permanentDeleteUser(id) {
+  if (confirm('⚠️ CẢNH BÁO: Bạn sẽ xóa vĩnh viễn user này. Hành động này KHÔNG THỂ HOÀN TÁC!')) {
+    try {
+      await api.delete(`/users/${id}/permanent`);
+      await loadData();
+      await loadStatistics();
+      showToast('Đã xóa vĩnh viễn user!', 'success');
+    } catch (error) {
+      console.error('Error permanently deleting user:', error);
+      showToast('Xóa thất bại!', 'error');
+    }
+  }
+}
+
+async function emptyTrash() {
+  if (confirm('⚠️ CẢNH BÁO: Bạn sẽ xóa vĩnh viễn TẤT CẢ user trong thùng rác. Hành động này KHÔNG THỂ HOÀN TÁC!')) {
+    try {
+      await api.delete('/users/empty-trash');
+      await loadData();
+      await loadStatistics();
+      showToast('Đã dọn sạch thùng rác!', 'success');
+    } catch (error) {
+      console.error('Error emptying trash:', error);
+      showToast('Xóa thất bại!', 'error');
+    }
+  }
+}
+
+function editUser(user) {
+  editingUser.value = user;
+  formData.value = {
+    username: user.username,
+    password: '',
+    fullName: user.fullName || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    role: user.role || 'Sales',
+    avatar: user.avatar || ''
+  };
+  showDialog.value = true;
+}
+
+function viewDetail(user) {
+  selectedUser.value = user;
+  showDetailModal.value = true;
+}
+
+function openAddModal() {
+  editingUser.value = null;
+  formData.value = {
+    username: '',
+    password: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'Sales',
+    avatar: ''
+  };
+  forcePasswordChange.value = true;
+  showDialog.value = true;
+}
+
+function resetForm() {
+  editingUser.value = null;
+  formData.value = {
+    username: '',
+    password: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'Sales',
+    avatar: ''
+  };
+  forcePasswordChange.value = true;
+}
+
+function resetFilters() {
+  searchKeyword.value = '';
+  filterRole.value = '';
+  resetActivePage();
+}
+
+function closeModal() {
+  showDialog.value = false;
+  resetForm();
+}
+
+function closeDetailModal() {
+  showDetailModal.value = false;
+  selectedUser.value = null;
+}
+
+// Pagination methods
+function goToActivePage(page) {
+  if (page >= 1 && page <= totalActivePages.value) {
+    activeCurrentPage.value = page;
+  }
+}
+
+function goToDeletedPage(page) {
+  if (page >= 1 && page <= totalDeletedPages.value) {
+    deletedCurrentPage.value = page;
+  }
+}
+
+function getActivePageNumbers() {
+  const total = totalActivePages.value;
+  const current = activeCurrentPage.value;
+  const delta = 2;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+}
+
+function getDeletedPageNumbers() {
+  const total = totalDeletedPages.value;
+  const current = deletedCurrentPage.value;
+  const delta = 2;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+}
+</script>
 
 <style scoped>
 * {
@@ -1468,10 +1610,29 @@ tbody tr:hover {
   color: #6b7280;
 }
 
+/* Status Badges */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: #f0fdf4;
+  color: #10b981;
+}
+
+.status-badge.locked {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .action-btn {
@@ -1514,6 +1675,22 @@ tbody tr:hover {
 
 .action-btn.delete:hover {
   background: #fef2f2;
+}
+
+.action-btn.lock {
+  color: #f59e0b;
+}
+
+.action-btn.lock:hover {
+  background: #fffbeb;
+}
+
+.action-btn.unlock {
+  color: #10b981;
+}
+
+.action-btn.unlock:hover {
+  background: #f0fdf4;
 }
 
 .action-btn.restore {
@@ -1740,6 +1917,62 @@ tbody tr:hover {
   gap: 16px;
 }
 
+/* Password Default Box */
+.password-default-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.password-display {
+  flex: 1;
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: #667eea;
+  letter-spacing: 2px;
+}
+
+.btn-copy {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #6c757d;
+  transition: all 0.2s;
+}
+
+.btn-copy:hover {
+  background: #e5e7eb;
+  color: #667eea;
+}
+
+.btn-copy svg {
+  width: 18px;
+  height: 18px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
 /* Detail Modal */
 .detail-avatar-section {
   text-align: center;
@@ -1928,6 +2161,42 @@ tbody tr:hover {
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
+/* Toast Message */
+.toast-message {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.3s ease;
+  max-width: 400px;
+}
+
+.toast-message.success {
+  background: #10b981;
+  color: white;
+}
+
+.toast-message.error {
+  background: #ef4444;
+  color: white;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .user-management {
@@ -1975,5 +2244,38 @@ tbody tr:hover {
   .pagination-page-size {
     justify-content: center;
   }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ✅ Thêm style cho role tab content */
+.role-tab-content {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 0;
+}
+
+.role-tab-content :deep(.role-management) {
+  padding: 0;
+  background: white;
+}
+
+.role-tab-content :deep(.page-header) {
+  margin-bottom: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.role-tab-content :deep(.table-card) {
+  border-radius: 0 0 16px 16px;
+  box-shadow: none;
 }
 </style>
