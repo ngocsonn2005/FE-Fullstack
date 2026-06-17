@@ -1,19 +1,14 @@
-// OrderCreate.vue
 <template>
   <div class="order-create">
     <div class="page-header">
       <div>
-        <router-link to="/app/orders" class="back-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Quay lại danh sách
-        </router-link>
+        <router-link to="/app/orders" class="back-link">← Quay lại danh sách</router-link>
         <h2>Tạo đơn bán hàng mới</h2>
       </div>
     </div>
 
     <div class="form-card">
+      <!-- Thông tin khách hàng -->
       <div class="section">
         <h3>Thông tin khách hàng</h3>
         <div class="form-row">
@@ -26,7 +21,7 @@
               </option>
             </select>
             <small v-if="selectedCustomer" class="partner-info">
-              <span class="info-icon">📞</span> {{ selectedCustomer.phone }} | {{ selectedCustomer.email }}
+              📞 {{ selectedCustomer.phone }} | {{ selectedCustomer.email }}
             </small>
           </div>
           <div class="form-group">
@@ -50,15 +45,11 @@
         </div>
       </div>
 
+      <!-- Sản phẩm -->
       <div class="section">
         <div class="section-header">
           <h3>Danh sách sản phẩm</h3>
-          <button type="button" @click="addItem" class="btn btn-outline btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Thêm sản phẩm
-          </button>
+          <button type="button" @click="addItem" class="btn btn-outline btn-sm">+ Thêm sản phẩm</button>
         </div>
 
         <div class="items-table">
@@ -74,11 +65,7 @@
             <input v-model.number="item.quantity" type="number" min="1" />
             <input v-model.number="item.unitPrice" type="number" min="0" />
             <span class="subtotal">{{ formatMoney(item.quantity * item.unitPrice) }}</span>
-            <button type="button" @click="removeItem(index)" class="remove-btn" :disabled="form.items.length === 1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
+            <button type="button" @click="removeItem(index)" class="remove-btn" :disabled="form.items.length === 1">×</button>
           </div>
         </div>
 
@@ -111,14 +98,7 @@
       <div class="form-actions">
         <router-link to="/app/orders" class="btn btn-outline">Hủy</router-link>
         <button type="button" @click="submit" :disabled="loading" class="btn btn-primary">
-          <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-          <template v-else>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-          </template>
-          Tạo đơn hàng
+          {{ loading ? 'Đang tạo...' : '🛒 Tạo đơn hàng' }}
         </button>
       </div>
     </div>
@@ -154,6 +134,7 @@ const discountAmount = computed(() => subtotal.value * form.value.discountPercen
 const totalAmount = computed(() => subtotal.value - discountAmount.value);
 const debtAmount = computed(() => Math.max(0, totalAmount.value - form.value.paidAmount));
 
+// Lấy danh sách khách hàng từ /api/customers
 const fetchCustomers = async () => {
   try {
     const res = await orderApi.get('/customers');
@@ -191,23 +172,24 @@ const submit = async () => {
 
   loading.value = true;
   try {
+    // Payload khớp đúng với CreateOrderDto ở backend
     const payload = {
       customerId: Number(form.value.customerId),
-      partnerId: Number(form.value.customerId),
+      partnerId: Number(form.value.customerId),   // gửi cả hai để backend linh hoạt
       paidAmount: form.value.paidAmount,
       discountPercent: form.value.discountPercent,
       items: validItems.map((item, index) => ({
         productId: index + 1,
         productName: item.productName,
         quantity: item.quantity,
-        price: item.unitPrice,
-        unitPrice: item.unitPrice
+        price: item.unitPrice,       // backend đọc Price
+        unitPrice: item.unitPrice    // gửi cả hai alias
       }))
     };
 
     const res = await orderApi.post('/orders', payload);
     const order = res.data;
-    alert('Tạo đơn thành công! Mã đơn: #' + (order.id || ''));
+    alert('Tạo đơn thành công! Mã đơn: #' + (order.orderId || ''));
     router.push('/app/orders');
   } catch (e) {
     error.value = e.response?.data?.message || e.message;
@@ -224,15 +206,7 @@ onMounted(fetchCustomers);
 <style scoped>
 .order-create { padding: 24px; }
 .page-header { margin-bottom: 20px; }
-.back-link { 
-  color: #2563eb; 
-  font-size: 13px; 
-  text-decoration: none; 
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 6px; 
-}
+.back-link { color: #2563eb; font-size: 13px; text-decoration: none; display: block; margin-bottom: 6px; }
 .page-header h2 { margin: 0; font-size: 20px; }
 .form-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
 .section { border: 1px solid #f3f4f6; border-radius: 8px; padding: 20px; }
@@ -249,18 +223,7 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #e5e7eb; border-r
 .items-header { display: grid; grid-template-columns: 3fr 1fr 2fr 2fr 40px; gap: 8px; padding: 6px 0; font-size: 11px; font-weight: 600; color: #6b7280; }
 .item-row { display: grid; grid-template-columns: 3fr 1fr 2fr 2fr 40px; gap: 8px; align-items: center; }
 .subtotal { font-weight: 600; font-size: 13px; }
-.remove-btn { 
-  background: #fee2e2; 
-  color: #dc2626; 
-  border: none; 
-  border-radius: 4px; 
-  cursor: pointer; 
-  width: 32px; 
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.remove-btn { background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 32px; height: 32px; }
 .remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .summary-box { margin-top: 16px; background: #f9fafb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 .summary-row { display: flex; justify-content: space-between; font-size: 13px; }
@@ -269,22 +232,10 @@ input, select, textarea { padding: 8px 10px; border: 1px solid #e5e7eb; border-r
 .success { color: #16a34a; }
 .danger { color: #dc2626; }
 .form-actions { display: flex; justify-content: flex-end; gap: 12px; }
-.btn { 
-  padding: 8px 18px; 
-  border-radius: 6px; 
-  border: none; 
-  cursor: pointer; 
-  font-size: 13px; 
-  font-weight: 600; 
-  text-decoration: none; 
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+.btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-block; }
 .btn-primary { background: #2563eb; color: #fff; }
 .btn-outline { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .error-box { background: #fee2e2; color: #b91c1c; padding: 12px 16px; border-radius: 8px; font-size: 13px; }
-.spinner-border { width: 1rem; height: 1rem; }
 </style>

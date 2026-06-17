@@ -1,48 +1,16 @@
-// OrderDetail.vue
 <template>
   <div class="order-detail">
     <div class="page-header">
       <div>
-        <router-link to="/app/orders" class="back-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Quay lại danh sách
-        </router-link>
-        <h2>Chi tiết đơn hàng: <span class="order-code">#{{ order?.id }}</span></h2>
+        <router-link to="/app/orders" class="back-link">← Quay lại danh sách</router-link>
+       <h2>Chi tiết đơn hàng: <span class="order-code">#{{ order?.orderId }}</span></h2>
       </div>
       <div class="header-actions" v-if="order">
-        <button @click="openInvoice" class="btn btn-outline">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="18" rx="2"/>
-            <path d="M8 7h8M8 11h6M8 15h4"/>
-          </svg>
-          Xuất hóa đơn
-        </button>
-        <button v-if="order.status === 'Pending'" @click="confirmOrder" class="btn btn-success">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 6L9 17l-5-5"/>
-          </svg>
-          Xác nhận đơn
-        </button>
-        <button v-if="order.status === 'Confirmed'" @click="nextStatus('Processing')" class="btn btn-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Chuyển xử lý
-        </button>
-        <button v-if="order.status === 'Processing'" @click="nextStatus('Completed')" class="btn btn-success">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 6L9 17l-5-5"/>
-          </svg>
-          Hoàn thành
-        </button>
-        <button v-if="!['Completed','Cancelled'].includes(order.status)" @click="cancelOrder" class="btn btn-danger">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
-          Hủy đơn
-        </button>
+        <button @click="openInvoice" class="btn btn-outline">🧾 Xuất hóa đơn</button>
+        <button v-if="order.status === 'Pending'" @click="confirmOrder" class="btn btn-success">✅ Xác nhận đơn</button>
+        <button v-if="order.status === 'Confirmed'" @click="nextStatus('Processing')" class="btn btn-primary">▶ Chuyển xử lý</button>
+        <button v-if="order.status === 'Processing'" @click="nextStatus('Completed')" class="btn btn-success">✔ Hoàn thành</button>
+        <button v-if="!['Completed','Cancelled'].includes(order.status)" @click="cancelOrder" class="btn btn-danger">🚫 Hủy đơn</button>
       </div>
     </div>
 
@@ -50,13 +18,15 @@
     <div v-if="error" class="error-box">{{ error }}</div>
 
     <div v-if="order && !loading" class="content-grid">
+      <!-- Cột trái -->
       <div class="left-col">
+        <!-- Thông tin đơn hàng -->
         <div class="card">
           <h3>Thông tin đơn hàng</h3>
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">Mã đơn hàng</span>
-              <span class="info-value"><strong>#{{ order.id }}</strong></span>
+              <span class="info-value"><strong>#{{ order.orderId }}</strong></span>
             </div>
             <div class="info-item">
               <span class="info-label">Trạng thái</span>
@@ -69,6 +39,7 @@
           </div>
         </div>
 
+        <!-- Khách hàng -->
         <div class="card">
           <h3>Thông tin khách hàng</h3>
           <div class="info-grid">
@@ -83,6 +54,7 @@
           </div>
         </div>
 
+        <!-- Sản phẩm -->
         <div class="card">
           <h3>Danh sách sản phẩm</h3>
           <table class="items-table">
@@ -111,7 +83,9 @@
         </div>
       </div>
 
+      <!-- Cột phải -->
       <div class="right-col">
+        <!-- Thanh toán -->
         <div class="card">
           <h3>Thanh toán</h3>
           <div class="payment-summary">
@@ -129,6 +103,7 @@
             </div>
           </div>
 
+          <!-- Form thanh toán -->
           <div v-if="remaining > 0 && order.status !== 'Cancelled'" class="pay-form">
             <h4>Ghi nhận thanh toán</h4>
             <div class="form-group">
@@ -138,20 +113,21 @@
             <div class="form-group">
               <label>Phương thức</label>
               <select v-model="payMethod">
-                <option value="Cash">Tiền mặt</option>
-                <option value="BankTransfer">Chuyển khoản</option>
-                <option value="Card">Thẻ</option>
+                <option value="Cash">💵 Tiền mặt</option>
+                <option value="BankTransfer">🏦 Chuyển khoản</option>
+                <option value="Card">💳 Thẻ</option>
               </select>
             </div>
             <button @click="processPayment" :disabled="payLoading" class="btn btn-success btn-full">
-              {{ payLoading ? 'Đang xử lý...' : 'Xác nhận thanh toán' }}
+              {{ payLoading ? 'Đang xử lý...' : '✅ Xác nhận thanh toán' }}
             </button>
             <div v-if="payError" class="error-box" style="margin-top:8px">{{ payError }}</div>
             <div v-if="paySuccess" class="success-box">{{ paySuccess }}</div>
           </div>
-          <div v-else-if="remaining <= 0" class="paid-badge">Đã thanh toán đủ</div>
+          <div v-else-if="remaining <= 0" class="paid-badge">✅ Đã thanh toán đủ</div>
         </div>
 
+        <!-- Vòng đời đơn hàng -->
         <div class="card">
           <h3>Vòng đời đơn hàng</h3>
           <div class="timeline">
@@ -167,29 +143,22 @@
       </div>
     </div>
 
-    <!-- MODAL HÓA ĐƠN -->
+    <!-- ============ MODAL HÓA ĐƠN ============ -->
     <div v-if="showInvoice" class="modal-overlay" @click.self="showInvoice = false">
       <div class="modal-box">
         <div class="modal-toolbar">
           <span class="modal-title">Hóa đơn bán hàng</span>
           <div class="modal-actions">
-            <button @click="printInvoice" class="btn btn-outline btn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 6 2 18 2 18 9"/>
-                <path d="M18 9h3v9H3V9h3"/>
-                <rect x="6" y="13" width="12" height="6" rx="1"/>
-                <path d="M9 16h6"/>
-              </svg>
-              In hóa đơn
-            </button>
+            <button @click="printInvoice" class="btn btn-outline btn-sm">🖨️ In hóa đơn</button>
             <button @click="downloadInvoicePdf" :disabled="pdfLoading" class="btn btn-primary btn-sm">
-              {{ pdfLoading ? 'Đang tạo PDF...' : 'Tải PDF' }}
+              {{ pdfLoading ? 'Đang tạo PDF...' : '⬇️ Tải PDF' }}
             </button>
             <button @click="showInvoice = false" class="modal-close">×</button>
           </div>
         </div>
 
         <div class="modal-scroll">
+          <!-- Vùng nội dung được in / xuất PDF -->
           <div ref="invoiceRef" class="invoice-paper">
             <div class="invoice-header">
               <div>
@@ -198,7 +167,7 @@
               </div>
               <div class="invoice-meta">
                 <h3>HÓA ĐƠN BÁN HÀNG</h3>
-                <p>Số: <strong>HD-{{ String(order.id).padStart(6, '0') }}</strong></p>
+                <p>Số: <strong>HD-{{ String(order.orderId).padStart(6, '0') }}</strong></p>
                 <p>Ngày: {{ formatDate(order.createdAt) }}</p>
               </div>
             </div>
@@ -212,7 +181,7 @@
               </div>
               <div>
                 <div class="invoice-info-label">Mã đơn hàng</div>
-                <div class="invoice-info-value">#{{ order.id }}</div>
+                <div class="invoice-info-value">#{{ order.orderId }}</div>
               </div>
               <div>
                 <div class="invoice-info-label">Trạng thái</div>
@@ -291,6 +260,7 @@ const payLoading = ref(false);
 const payError = ref('');
 const paySuccess = ref('');
 
+// Hóa đơn
 const showInvoice = ref(false);
 const invoiceRef = ref(null);
 const pdfLoading = ref(false);
@@ -309,6 +279,7 @@ const fetchOrder = async () => {
   error.value = '';
   try {
     const res = await orderApi.get(`/orders/${route.params.id}`);
+    // Backend trả thẳng object, không wrap
     order.value = res.data.data ?? res.data;
     payAmount.value = remaining.value;
   } catch (e) {
@@ -321,6 +292,7 @@ const fetchOrder = async () => {
 const confirmOrder = async () => {
   if (!confirm('Xác nhận đơn hàng?')) return;
   try {
+    // Dùng endpoint /confirm đã thêm vào backend
     await orderApi.put(`/orders/${route.params.id}/confirm`);
     await fetchOrder();
   } catch (e) {
@@ -331,6 +303,7 @@ const confirmOrder = async () => {
 const nextStatus = async (status) => {
   if (!confirm(`Xác nhận chuyển sang "${statusLabel(status)}"?`)) return;
   try {
+    // Dùng query param ?status= theo backend
     await orderApi.put(`/orders/${route.params.id}/status?status=${status}`);
     await fetchOrder();
   } catch (e) {
@@ -340,9 +313,10 @@ const nextStatus = async (status) => {
 
 const cancelOrder = async () => {
   if (!confirm('Xác nhận hủy đơn hàng này?')) return;
+
   try {
-    await orderApi.delete(`/orders/${route.params.id}`);
-    router.push('/app/orders');
+    await orderApi.put(`/orders/${route.params.id}/cancel`);
+    await fetchOrder();
   } catch (e) {
     error.value = 'Lỗi: ' + (e.response?.data?.message || e.message);
   }
@@ -357,6 +331,7 @@ const processPayment = async () => {
   }
   payLoading.value = true;
   try {
+    // Gọi POST /api/billing với JSON body — khớp BillingController đã sửa
     const res = await orderApi.post('/billing', {
       orderId: parseInt(route.params.id),
       amount: payAmount.value,
@@ -383,10 +358,12 @@ const getStepClass = (stepKey) => {
   return 'pending';
 };
 
+// ============ HÓA ĐƠN ============
 const openInvoice = () => {
   showInvoice.value = true;
 };
 
+// Load script CDN một lần, tái sử dụng nếu đã có
 const loadScript = (src) => {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) {
@@ -409,7 +386,7 @@ const printInvoice = () => {
   printWin.document.write(`
     <html>
       <head>
-        <title>Hóa đơn #${order.value.id}</title>
+        <title>Hóa đơn #${order.value.orderId}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
           .invoice-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
@@ -461,7 +438,7 @@ const downloadInvoicePdf = async () => {
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-    pdf.save(`HoaDon_${order.value.id}.pdf`);
+    pdf.save(`HoaDon_${order.value.orderId}.pdf`);
   } catch (e) {
     alert('Lỗi xuất PDF: ' + e.message);
   } finally {
@@ -480,18 +457,10 @@ onMounted(fetchOrder);
 <style scoped>
 .order-detail { padding: 24px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
-.back-link { 
-  color: #2563eb; 
-  font-size: 13px; 
-  text-decoration: none; 
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 6px; 
-}
+.back-link { color: #2563eb; font-size: 13px; text-decoration: none; display: block; margin-bottom: 6px; }
 .page-header h2 { margin: 0; font-size: 20px; }
 .order-code { color: #2563eb; }
-.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.header-actions { display: flex; gap: 8px; }
 .content-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
 .left-col, .right-col { display: flex; flex-direction: column; gap: 20px; }
 .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; }
@@ -513,23 +482,11 @@ onMounted(fetchOrder);
 .pay-form .form-group { margin-bottom: 10px; }
 label { display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
 input, select { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
-.btn { 
-  padding: 8px 16px; 
-  border-radius: 6px; 
-  border: none; 
-  cursor: pointer; 
-  font-size: 13px; 
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+.btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
 .btn-primary { background: #2563eb; color: #fff; }
 .btn-success { background: #16a34a; color: #fff; }
 .btn-danger { background: #dc2626; color: #fff; }
-.btn-outline { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
-.btn-full { width: 100%; justify-content: center; }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-full { width: 100%; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .badge-yellow { background: #fef9c3; color: #a16207; }
@@ -551,6 +508,7 @@ input, select { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; borde
 .success-box { background: #dcfce7; color: #15803d; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-top: 8px; }
 .paid-badge { text-align: center; padding: 12px; background: #dcfce7; color: #15803d; border-radius: 8px; font-weight: 600; font-size: 14px; }
 
+/* ============ MODAL HÓA ĐƠN ============ */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;
