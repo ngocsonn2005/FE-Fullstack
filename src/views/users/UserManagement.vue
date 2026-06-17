@@ -25,7 +25,7 @@
       </button>
     </div>
 
-    <!-- Statistics - Ẩn khi ở tab Phân quyền -->
+    <!-- Statistics -->
     <div class="stats-grid" v-if="activeTab !== 'role'">
       <div class="stat-card total">
         <div class="stat-icon-bg">
@@ -104,7 +104,7 @@
       </div>
     </div>
 
-    <!-- Search & Filter - Ẩn khi ở tab Phân quyền -->
+    <!-- Search & Filter -->
     <div class="filter-bar" v-if="activeTab !== 'role'">
       <div class="search-wrapper">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -169,7 +169,6 @@
         <span class="tab-badge danger">{{ deletedUsers.length }}</span>
       </button>
 
-      <!-- ✅ THÊM TAB PHÂN QUYỀN -->
       <button 
         class="tab-button" 
         :class="{ active: activeTab === 'role' }"
@@ -193,7 +192,7 @@
       <p>Đang tải dữ liệu...</p>
     </div>
 
-    <!-- ✅ TAB PHÂN QUYỀN -->
+    <!-- TAB PHÂN QUYỀN -->
     <div v-else-if="activeTab === 'role'" class="role-tab-content">
       <RoleManagement />
     </div>
@@ -221,7 +220,7 @@
               <td>
                 <div class="user-cell">
                   <img 
-                    :src="user.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjRTJFOEZGMCIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTYiIHI9IjYiIGZpbGw9IiM5M0E0RkYiLz48cGF0aCBkPSJNMTAgMzJjMC02LjYyNyA0LjQ3Ny0xMCAxMC0xMCA1LjUyMyAwIDEwIDQuMzczIDEwIDEwIiBmaWxsPSIjOTNBNEZGIi8+PC9zdmc+'" 
+                    :src="user.avatar || defaultAvatar" 
                     class="user-avatar"
                     @error="handleImageError"
                   >
@@ -240,8 +239,8 @@
                 </span>
               </td>
               <td>
-                <span v-if="user.isLocked" class="status-badge locked">🔒 Bị khóa</span>
-                <span v-else class="status-badge active">✅ Hoạt động</span>
+                <span v-if="user.isLocked" class="status-badge locked">Bị khóa</span>
+                <span v-else class="status-badge active">Hoạt động</span>
               </td>
               <td>
                 <div class="action-buttons">
@@ -471,7 +470,7 @@
       </div>
     </div>
 
-    <!-- Modal Add/Edit -->
+    <!-- ✅ MODAL ADD/EDIT - ĐÃ SỬA LẠI -->
     <div class="modal-overlay" :class="{ show: showDialog }" v-if="showDialog" @click.self="closeModal">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -484,67 +483,70 @@
               </svg>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>Tên đăng nhập <span class="required">*</span></label>
-              <input class="form-input" v-model="formData.username" :disabled="!!editingUser" placeholder="Nhập tên đăng nhập">
-            </div>
-            
-            <!-- Phần hiển thị mật khẩu mặc định khi thêm mới -->
-            <div class="form-group" v-if="!editingUser">
-              <label>Mật khẩu mặc định</label>
-              <div class="password-default-box">
-                <span class="password-display">{{ defaultPassword }}</span>
-                <button class="btn-copy" @click="copyDefaultPassword" title="Sao chép">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
-                </button>
-              </div>
-              <small class="form-hint">Người dùng sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu</small>
-            </div>
-            
-            <div class="form-group" v-else>
-              <label>Mật khẩu mới</label>
-              <input class="form-input" type="password" v-model="formData.password" placeholder="Để trống nếu không đổi">
-              <small class="form-hint">Để trống nếu không muốn thay đổi mật khẩu</small>
-            </div>
-            
-            <div class="form-group">
-              <label>Họ và tên <span class="required">*</span></label>
-              <input class="form-input" v-model="formData.fullName" placeholder="Nhập họ tên đầy đủ">
-            </div>
-            <div class="form-row">
+          <div class="modal-body-scroll">
+            <div class="modal-body">
               <div class="form-group">
-                <label>Email</label>
-                <input class="form-input" type="email" v-model="formData.email" placeholder="example@email.com">
+                <label>Tên đăng nhập <span class="required">*</span></label>
+                <input class="form-input" v-model="formData.username" :disabled="!!editingUser" placeholder="Nhập tên đăng nhập">
               </div>
+              
+              <div class="form-group" v-if="!editingUser">
+                <label>Mật khẩu mặc định</label>
+                <div class="password-default-box">
+                  <span class="password-display">{{ defaultPassword }}</span>
+                  <button class="btn-copy" @click="copyDefaultPassword" title="Sao chép">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+                <small class="form-hint">Người dùng sẽ được yêu cầu đổi mật khẩu khi đăng nhập lần đầu</small>
+              </div>
+              
+              <div class="form-group" v-else>
+                <label>Mật khẩu mới</label>
+                <input class="form-input" type="password" v-model="formData.password" placeholder="Để trống nếu không đổi">
+                <small class="form-hint">Để trống nếu không muốn thay đổi mật khẩu</small>
+              </div>
+              
               <div class="form-group">
-                <label>Số điện thoại</label>
-                <input class="form-input" v-model="formData.phone" placeholder="0912345678">
+                <label>Họ và tên <span class="required">*</span></label>
+                <input class="form-input" v-model="formData.fullName" placeholder="Nhập họ tên đầy đủ">
               </div>
-            </div>
-            <div class="form-group">
-              <label>Vai trò <span class="required">*</span></label>
-              <select class="form-input" v-model="formData.role">
-                <option value="Admin">Quản trị viên</option>
-                <option value="Sales">Nhân viên bán hàng</option>
-                <option value="Warehouse">Nhân viên kho</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>URL Ảnh đại diện</label>
-              <input class="form-input" v-model="formData.avatar" placeholder="https://example.com/avatar.jpg">
-            </div>
-            
-            <!-- Checkbox yêu cầu đổi mật khẩu khi thêm mới -->
-            <div class="form-group" v-if="!editingUser">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="forcePasswordChange">
-                <span>Yêu cầu đổi mật khẩu khi đăng nhập lần đầu</span>
-              </label>
-              <small class="form-hint">Nếu bỏ chọn, người dùng sẽ đăng nhập với mật khẩu mặc định mà không bị yêu cầu đổi</small>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Email</label>
+                  <input class="form-input" type="email" v-model="formData.email" placeholder="example@email.com">
+                </div>
+                <div class="form-group">
+                  <label>Số điện thoại</label>
+                  <input class="form-input" v-model="formData.phone" placeholder="0912345678">
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Vai trò <span class="required">*</span></label>
+                <select class="form-input" v-model="formData.role">
+                  <option value="Admin">Quản trị viên</option>
+                  <option value="Sales">Nhân viên bán hàng</option>
+                  <option value="Warehouse">Nhân viên kho</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label>URL Ảnh đại diện</label>
+                <input class="form-input" v-model="formData.avatar" placeholder="https://example.com/avatar.jpg">
+              </div>
+              
+              <div class="form-group" v-if="!editingUser">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="forcePasswordChange">
+                  <span>Yêu cầu đổi mật khẩu khi đăng nhập lần đầu</span>
+                </label>
+                <small class="form-hint">Nếu bỏ chọn, người dùng sẽ đăng nhập với mật khẩu mặc định mà không bị yêu cầu đổi</small>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -568,48 +570,50 @@
               </svg>
             </button>
           </div>
-          <div class="modal-body">
-            <div class="detail-avatar-section">
-              <img 
-                :src="selectedUser?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg=='" 
-                class="detail-avatar"
-                @error="handleImageError"
-              >
-              <h4>{{ selectedUser?.fullName }}</h4>
-              <span :class="'role-badge ' + getRoleBadge(selectedUser?.role)">
-                {{ getRoleLabel(selectedUser?.role) }}
-              </span>
-              <span v-if="selectedUser?.isLocked" class="status-badge locked" style="margin-top: 8px;">🔒 Tài khoản bị khóa</span>
-              <span v-else class="status-badge active" style="margin-top: 8px;">✅ Tài khoản hoạt động</span>
-            </div>
-            <div class="detail-info">
-              <div class="info-row">
-                <span class="info-label">ID</span>
-                <span class="info-value">#{{ selectedUser?.id }}</span>
+          <div class="modal-body-scroll">
+            <div class="modal-body">
+              <div class="detail-avatar-section">
+                <img 
+                  :src="selectedUser?.avatar || defaultAvatar" 
+                  class="detail-avatar"
+                  @error="handleImageError"
+                >
+                <h4>{{ selectedUser?.fullName }}</h4>
+                <span :class="'role-badge ' + getRoleBadge(selectedUser?.role)">
+                  {{ getRoleLabel(selectedUser?.role) }}
+                </span>
+                <span v-if="selectedUser?.isLocked" class="status-badge locked" style="margin-top: 8px;">Tài khoản bị khóa</span>
+                <span v-else class="status-badge active" style="margin-top: 8px;">Tài khoản hoạt động</span>
               </div>
-              <div class="info-row">
-                <span class="info-label">Tên đăng nhập</span>
-                <span class="info-value highlight">{{ selectedUser?.username }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Email</span>
-                <span class="info-value">{{ selectedUser?.email || '---' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Số điện thoại</span>
-                <span class="info-value">{{ selectedUser?.phone || '---' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Ngày tạo</span>
-                <span class="info-value">{{ formatDate(selectedUser?.createdAt) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Lần đăng nhập cuối</span>
-                <span class="info-value">{{ formatDate(selectedUser?.lastLoginAt) }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Số lần đăng nhập</span>
-                <span class="info-value">{{ selectedUser?.loginCount || 0 }}</span>
+              <div class="detail-info">
+                <div class="info-row">
+                  <span class="info-label">ID</span>
+                  <span class="info-value">#{{ selectedUser?.id }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Tên đăng nhập</span>
+                  <span class="info-value highlight">{{ selectedUser?.username }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Email</span>
+                  <span class="info-value">{{ selectedUser?.email || '---' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Số điện thoại</span>
+                  <span class="info-value">{{ selectedUser?.phone || '---' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Ngày tạo</span>
+                  <span class="info-value">{{ formatDate(selectedUser?.createdAt) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Lần đăng nhập cuối</span>
+                  <span class="info-value">{{ formatDate(selectedUser?.lastLoginAt) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Số lần đăng nhập</span>
+                  <span class="info-value">{{ selectedUser?.loginCount || 0 }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -630,7 +634,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
-// ✅ Import component RoleManagement
 import RoleManagement from './RoleManagement.vue';
 
 // State
@@ -662,6 +665,7 @@ const itemsPerPage = ref(10);
 const defaultPassword = ref('123456');
 const forcePasswordChange = ref(true);
 const toast = ref({ show: false, message: '', type: 'success' });
+const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjRTJFOEZGMCIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTYiIHI9IjYiIGZpbGw9IiM5M0E0RkYiLz48cGF0aCBkPSJNMTAgMzJjMC02LjYyNyA0LjQ3Ny0xMCAxMC0xMCA1LjUyMyAwIDEwIDQuMzczIDEwIDEwIiBmaWxsPSIjOTNBNEZGIi8+PC9zdmc+';
 
 const formData = ref({
   username: '',
@@ -766,7 +770,6 @@ async function loadStatistics() {
   }
 }
 
-// Hàm getRoleLabel
 function getRoleLabel(role) {
   const labels = {
     'Admin': 'Quản trị viên',
@@ -788,7 +791,7 @@ function formatDate(dateString) {
 }
 
 function handleImageError(event) {
-  event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNFNUU3RUIiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPjxwYXRoIGQ9Ik0yNSA4MEMyNSA2NS41IDM2LjUgNTUgNTAgNTVTNzUgNjUuNSA3NSA4MCIgZmlsbD0iIzlDQTNBRiIvPjwvc3ZnPg==';
+  event.target.src = defaultAvatar;
 }
 
 function showToast(message, type = 'success') {
@@ -798,13 +801,11 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// Hàm copy mật khẩu mặc định
 function copyDefaultPassword() {
   navigator.clipboard.writeText(defaultPassword.value);
   showToast('Đã sao chép mật khẩu mặc định!', 'success');
 }
 
-// Hàm toggle khóa/mở khóa
 async function toggleLockUser(user) {
   const action = user.isLocked ? 'mở khóa' : 'khóa';
   if (confirm(`Bạn có chắc muốn ${action} tài khoản "${user.username}"?`)) {
@@ -821,7 +822,6 @@ async function toggleLockUser(user) {
   }
 }
 
-// Hàm saveUser
 async function saveUser() {
   try {
     if (editingUser.value) {
@@ -1001,7 +1001,6 @@ function closeDetailModal() {
   selectedUser.value = null;
 }
 
-// Pagination methods
 function goToActivePage(page) {
   if (page >= 1 && page <= totalActivePages.value) {
     activeCurrentPage.value = page;
@@ -1133,7 +1132,6 @@ function getDeletedPageNumbers() {
   color: #6c757d;
 }
 
-/* Buttons */
 .btn-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -1295,35 +1293,12 @@ function getDeletedPageNumbers() {
   height: 24px;
 }
 
-.stat-card.total .stat-icon-bg {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.stat-card.admin .stat-icon-bg {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-.stat-card.sales .stat-icon-bg {
-  background: #f0fdf4;
-  color: #10b981;
-}
-
-.stat-card.warehouse .stat-icon-bg {
-  background: #ecfeff;
-  color: #06b6d4;
-}
-
-.stat-card.deleted .stat-icon-bg {
-  background: #fffbeb;
-  color: #f59e0b;
-}
-
-.stat-card.locked .stat-icon-bg {
-  background: #f3f4f6;
-  color: #6b7280;
-}
+.stat-card.total .stat-icon-bg { background: #eff6ff; color: #3b82f6; }
+.stat-card.admin .stat-icon-bg { background: #fef2f2; color: #ef4444; }
+.stat-card.sales .stat-icon-bg { background: #f0fdf4; color: #10b981; }
+.stat-card.warehouse .stat-icon-bg { background: #ecfeff; color: #06b6d4; }
+.stat-card.deleted .stat-icon-bg { background: #fffbeb; color: #f59e0b; }
+.stat-card.locked .stat-icon-bg { background: #f3f4f6; color: #6b7280; }
 
 .stat-content {
   display: flex;
@@ -1590,25 +1565,10 @@ tbody tr:hover {
   letter-spacing: 0.3px;
 }
 
-.role-admin {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-.role-sales {
-  background: #f0fdf4;
-  color: #10b981;
-}
-
-.role-warehouse {
-  background: #ecfeff;
-  color: #06b6d4;
-}
-
-.role-default {
-  background: #f3f4f6;
-  color: #6b7280;
-}
+.role-admin { background: #fef2f2; color: #ef4444; }
+.role-sales { background: #f0fdf4; color: #10b981; }
+.role-warehouse { background: #ecfeff; color: #06b6d4; }
+.role-default { background: #f3f4f6; color: #6b7280; }
 
 /* Status Badges */
 .status-badge {
@@ -1618,15 +1578,8 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-.status-badge.active {
-  background: #f0fdf4;
-  color: #10b981;
-}
-
-.status-badge.locked {
-  background: #fef2f2;
-  color: #ef4444;
-}
+.status-badge.active { background: #f0fdf4; color: #10b981; }
+.status-badge.locked { background: #fef2f2; color: #ef4444; }
 
 /* Action Buttons */
 .action-buttons {
@@ -1653,46 +1606,16 @@ tbody tr:hover {
   height: 18px;
 }
 
-.action-btn.view {
-  color: #3b82f6;
-}
-
-.action-btn.view:hover {
-  background: #eff6ff;
-}
-
-.action-btn.edit {
-  color: #f59e0b;
-}
-
-.action-btn.edit:hover {
-  background: #fffbeb;
-}
-
-.action-btn.delete {
-  color: #ef4444;
-}
-
-.action-btn.delete:hover {
-  background: #fef2f2;
-}
-
-.action-btn.lock {
-  color: #f59e0b;
-}
-
-.action-btn.lock:hover {
-  background: #fffbeb;
-}
-
-.action-btn.unlock {
-  color: #10b981;
-}
-
-.action-btn.unlock:hover {
-  background: #f0fdf4;
-}
-
+.action-btn.view { color: #3b82f6; }
+.action-btn.view:hover { background: #eff6ff; }
+.action-btn.edit { color: #f59e0b; }
+.action-btn.edit:hover { background: #fffbeb; }
+.action-btn.delete { color: #ef4444; }
+.action-btn.delete:hover { background: #fef2f2; }
+.action-btn.lock { color: #f59e0b; }
+.action-btn.lock:hover { background: #fffbeb; }
+.action-btn.unlock { color: #10b981; }
+.action-btn.unlock:hover { background: #f0fdf4; }
 .action-btn.restore {
   background: #f0fdf4;
   color: #10b981;
@@ -1702,12 +1625,10 @@ tbody tr:hover {
   font-weight: 500;
   gap: 4px;
 }
-
 .action-btn.restore:hover {
   background: #10b981;
   color: white;
 }
-
 .action-btn.permanent-delete {
   background: #fef2f2;
   color: #ef4444;
@@ -1717,7 +1638,6 @@ tbody tr:hover {
   font-weight: 500;
   gap: 4px;
 }
-
 .action-btn.permanent-delete:hover {
   background: #ef4444;
   color: white;
@@ -1774,19 +1694,22 @@ tbody tr:hover {
   font-size: 14px;
 }
 
-/* Modal */
+/* ============================================================
+   MODAL - ĐÃ SỬA LẠI
+   ============================================================ */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px;
 }
 
 .modal-overlay.show {
@@ -1795,15 +1718,17 @@ tbody tr:hover {
 
 .modal-dialog {
   width: 100%;
-  max-width: 560px;
-  margin: 20px;
+  max-width: 540px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
   animation: slideUp 0.3s ease;
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -1815,11 +1740,15 @@ tbody tr:hover {
   background: white;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
 }
 
 .modal-header {
-  padding: 24px;
+  flex-shrink: 0;
+  padding: 18px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
@@ -1830,6 +1759,7 @@ tbody tr:hover {
 .modal-header h3 {
   font-size: 18px;
   font-weight: 600;
+  margin: 0;
 }
 
 .modal-close {
@@ -1855,29 +1785,56 @@ tbody tr:hover {
   height: 18px;
 }
 
+/* ✅ Phần body có thể cuộn */
+.modal-body-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 4px 0 0;
+}
+
+.modal-body-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .modal-body {
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .modal-footer {
-  padding: 20px 24px;
+  flex-shrink: 0;
+  padding: 16px 24px;
   background: #f8f9fa;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  border-top: 1px solid #e9edf4;
 }
 
 /* Forms */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .form-group label {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: #374151;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .required {
@@ -1888,7 +1845,7 @@ tbody tr:hover {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -1906,7 +1863,7 @@ tbody tr:hover {
 
 .form-hint {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 12px;
   color: #9ca3af;
 }
@@ -1917,24 +1874,23 @@ tbody tr:hover {
   gap: 16px;
 }
 
-/* Password Default Box */
 .password-default-box {
   display: flex;
   align-items: center;
   gap: 8px;
   background: #f8f9fa;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px 12px;
 }
 
 .password-display {
   flex: 1;
   font-family: monospace;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #667eea;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 
 .btn-copy {
@@ -1960,15 +1916,15 @@ tbody tr:hover {
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   font-size: 14px;
   color: #374151;
 }
 
 .checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   cursor: pointer;
   accent-color: #667eea;
 }
@@ -1976,37 +1932,37 @@ tbody tr:hover {
 /* Detail Modal */
 .detail-avatar-section {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .detail-avatar {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #667eea;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .detail-avatar-section h4 {
   font-size: 18px;
   color: #1a1a2e;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .detail-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #f8f9fa;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .info-label {
@@ -2026,67 +1982,60 @@ tbody tr:hover {
   font-weight: 600;
 }
 
-/* Enhanced Pagination Styles */
+/* Pagination */
 .pagination-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-top: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: #f8f9fa;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   border-radius: 0 0 16px 16px;
 }
 
 .pagination-info {
-  font-size: 14px;
+  font-size: 13px;
   color: #495057;
   display: flex;
   align-items: center;
   gap: 8px;
   background: white;
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 4px 14px;
+  border-radius: 16px;
   font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .pagination {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .pagination-btn {
-  min-width: 38px;
-  height: 38px;
-  padding: 0 10px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
   border: 1px solid #e5e7eb;
   background: white;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.25s ease;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #4b5563;
-}
-
-.pagination-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2;
 }
 
 .pagination-btn:hover:not(:disabled):not(.dots) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-color: transparent;
   color: white;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
 
@@ -2101,9 +2050,6 @@ tbody tr:hover {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
-  background: #f3f4f6;
-  border-color: #e5e7eb;
-  color: #9ca3af;
 }
 
 .pagination-btn.dots {
@@ -2113,60 +2059,36 @@ tbody tr:hover {
   box-shadow: none;
   font-weight: 600;
   color: #6c757d;
-  letter-spacing: 2px;
 }
 
-.pagination-btn.dots:hover {
-  background: transparent;
-  transform: none;
-}
-
-/* Page size selector */
 .pagination-page-size {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
   color: #495057;
   background: white;
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.pagination-page-size span {
-  color: #6c757d;
+  padding: 4px 12px;
+  border-radius: 16px;
 }
 
 .pagination-page-size select {
-  padding: 6px 10px;
+  padding: 4px 8px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 6px;
   background: white;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #4b5563;
-  transition: all 0.2s ease;
   outline: none;
 }
 
-.pagination-page-size select:hover {
-  border-color: #667eea;
-}
-
-.pagination-page-size select:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Toast Message */
+/* Toast */
 .toast-message {
   position: fixed;
   top: 24px;
   right: 24px;
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
@@ -2176,86 +2098,15 @@ tbody tr:hover {
   max-width: 400px;
 }
 
-.toast-message.success {
-  background: #10b981;
-  color: white;
-}
-
-.toast-message.error {
-  background: #ef4444;
-  color: white;
-}
+.toast-message.success { background: #10b981; color: white; }
+.toast-message.error { background: #ef4444; color: white; }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .user-management {
-    padding: 16px;
-  }
-  
-  .page-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-  }
-  
-  .filter-bar {
-    flex-direction: column;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .pagination-wrapper {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 16px;
-  }
-  
-  .pagination-info {
-    justify-content: center;
-  }
-  
-  .pagination {
-    justify-content: center;
-  }
-  
-  .pagination-btn {
-    min-width: 34px;
-    height: 34px;
-    font-size: 13px;
-  }
-  
-  .pagination-page-size {
-    justify-content: center;
-  }
-  
-  .action-buttons {
-    flex-wrap: wrap;
-  }
-  
-  .action-btn {
-    width: 32px;
-    height: 32px;
-  }
-}
-
-/* ✅ Thêm style cho role tab content */
+/* Role tab */
 .role-tab-content {
   background: white;
   border-radius: 16px;
@@ -2277,5 +2128,34 @@ tbody tr:hover {
 .role-tab-content :deep(.table-card) {
   border-radius: 0 0 16px 16px;
   box-shadow: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-management { padding: 16px; }
+  .page-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .filter-bar { flex-direction: column; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+  .pagination-wrapper { flex-direction: column; align-items: stretch; padding: 16px; }
+  .pagination-info { justify-content: center; }
+  .pagination { justify-content: center; }
+  .pagination-btn { min-width: 32px; height: 32px; font-size: 12px; }
+  .action-buttons { flex-wrap: wrap; }
+  .action-btn { width: 30px; height: 30px; }
+  
+  .modal-dialog { max-width: 100%; margin: 10px; max-height: 95vh; }
+  .modal-content { max-height: 95vh; border-radius: 12px; }
+  .modal-body-scroll { max-height: 50vh; }
+  .modal-header h3 { font-size: 16px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { flex-direction: column; gap: 8px; padding: 12px 16px; }
+  .modal-footer .btn-cancel,
+  .modal-footer .btn-primary { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .modal-body-scroll { max-height: 40vh; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>

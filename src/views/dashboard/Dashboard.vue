@@ -1,29 +1,32 @@
 <template>
   <div class="dashboard-container">
     <!-- ==================== HEADER ==================== -->
-    <div class="dashboard-header">
+    <header class="dashboard-header">
       <div class="header-left">
-        <div class="greeting-avatar">
-          <img :src="userAvatar" alt="Avatar" @error="handleAvatarError">
-          <span class="online-dot"></span>
-        </div>
-        <div class="greeting-text">
-          <h1>
-            <span class="greeting-word">{{ greeting }}</span>
-            <span class="greeting-name">{{ authStore?.fullName || 'Admin' }}</span>
-          </h1>
-          <p class="greeting-sub">
-            <span class="role-badge" :class="getRoleClass(authStore?.role)">
-              {{ authStore?.role || 'Admin' }}
-            </span>
-            Chào mừng bạn quay trở lại quản trị hệ thống
-          </p>
+        <div class="user-profile">
+          <div class="avatar-wrapper">
+            <img :src="userAvatar" alt="Avatar" @error="handleAvatarError">
+            <span class="status-indicator"></span>
+          </div>
+          <div class="user-info">
+            <h1 class="user-greeting">
+              <span class="greeting-text">{{ greeting }}</span>
+              <span class="user-name">{{ authStore?.fullName || 'Admin' }}</span>
+            </h1>
+            <div class="user-meta">
+              <span class="role-tag" :class="getRoleClass(authStore?.role)">
+                {{ authStore?.role || 'Administrator' }}
+              </span>
+              <span class="meta-divider">|</span>
+              <span class="meta-text">Quản trị hệ thống</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="header-right">
-        <div class="header-date">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <div class="date-display">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
@@ -33,88 +36,67 @@
             <span class="date-full">{{ currentDate }}</span>
           </div>
         </div>
-        <button class="btn-refresh" @click="refreshData" :disabled="isRefreshing">
-          <svg :class="{ spinning: isRefreshing }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="refresh-button" @click="refreshData" :disabled="isRefreshing">
+          <svg :class="{ spinning: isRefreshing }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <polyline points="23 4 23 10 17 10"/>
             <polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          {{ isRefreshing ? 'Đang tải...' : 'Làm mới' }}
+          <span>{{ isRefreshing ? 'Đang tải...' : 'Làm mới' }}</span>
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- ==================== QUICK STATS ==================== -->
-    <div class="quick-stats-row">
-      <div class="quick-stat-item" v-for="stat in quickStats" :key="stat.label">
-        <div class="quick-stat-icon" :style="{ background: stat.color }">
-          <component :is="stat.icon" />
-        </div>
-        <div class="quick-stat-info">
-          <span class="quick-stat-number">{{ stat.value }}</span>
-          <span class="quick-stat-label">{{ stat.label }}</span>
-        </div>
-        <div class="quick-stat-change" :class="stat.trend">
-          {{ stat.change }}
-        </div>
+    <!-- ==================== STATS ROW ==================== -->
+    <section class="stats-row">
+      <div class="stat-item" v-for="stat in quickStats" :key="stat.label">
+        <span class="stat-number">{{ stat.value }}</span>
+        <span class="stat-label">{{ stat.label }}</span>
+        <span class="stat-change" :class="stat.trend">{{ stat.change }}</span>
       </div>
-    </div>
+    </section>
 
-    <!-- ==================== TABS ==================== -->
-    <div class="dashboard-tabs">
+    <!-- ==================== NAVIGATION TABS ==================== -->
+    <nav class="dashboard-nav">
       <button 
         v-for="tab in tabs" 
         :key="tab.key"
-        class="tab-btn" 
+        class="nav-item" 
         :class="{ active: activeTab === tab.key }"
         @click="switchTab(tab.key)"
       >
-        <component :is="tab.icon" class="tab-icon" />
-        {{ tab.label }}
-        <span class="tab-badge" v-if="tab.badge">{{ tab.badge }}</span>
+        <span class="nav-icon" v-html="tab.icon" />
+        <span>{{ tab.label }}</span>
+        <span class="nav-badge" v-if="tab.badge">{{ tab.badge }}</span>
       </button>
-    </div>
+    </nav>
 
     <!-- ============================================================ -->
-    <!-- TAB 1: TỔNG QUAN -->
+    <!-- TAB: TỔNG QUAN -->
     <!-- ============================================================ -->
-    <div v-if="activeTab === 'overview'" class="tab-panel">
-      <!-- Stats Cards -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="card in overviewStats" :key="card.label">
-          <div class="stat-card-icon" :style="{ background: card.iconBg }">
-            <component :is="card.icon" />
-          </div>
-          <div class="stat-card-content">
-            <span class="stat-card-value">{{ card.value }}</span>
-            <span class="stat-card-label">{{ card.label }}</span>
-          </div>
-          <div class="stat-card-trend" :class="card.trend">
-            {{ card.trendValue }}
-          </div>
-          <div class="stat-card-progress" v-if="card.progress">
-            <div class="progress-track">
-              <div class="progress-fill" :style="{ width: card.progress + '%' }"></div>
+    <section v-if="activeTab === 'overview'" class="tab-content">
+      <div class="metric-grid">
+        <div class="metric-card" v-for="card in overviewStats" :key="card.label">
+          <span class="metric-value">{{ card.value }}</span>
+          <span class="metric-label">{{ card.label }}</span>
+          <span class="metric-trend" :class="card.trend">{{ card.trendValue }}</span>
+          <div class="metric-bar" v-if="card.progress">
+            <div class="bar-track">
+              <div class="bar-fill" :style="{ width: card.progress + '%' }"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="charts-grid">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
-              <h3>Doanh thu theo tháng</h3>
-              <p>Biểu đồ doanh thu 12 tháng gần nhất</p>
+      <div class="chart-grid">
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
+              <h3>Biểu đồ doanh thu</h3>
+              <p>Theo dõi doanh thu 12 tháng gần nhất</p>
             </div>
-            <div class="year-selector">
-              <button 
-                v-for="y in [2023, 2024, 2025]" 
-                :key="y"
-                :class="['year-btn', { active: selectedYear === y }]"
-                @click="selectedYear = y"
-              >{{ y }}</button>
+            <div class="year-switcher">
+              <button v-for="y in [2023, 2024, 2025]" :key="y" :class="['year-btn', { active: selectedYear === y }]" @click="selectedYear = y">{{ y }}</button>
             </div>
           </div>
           <div class="chart-body">
@@ -122,9 +104,9 @@
           </div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
               <h3>Sản phẩm bán chạy</h3>
               <p>Top 5 sản phẩm có doanh số cao nhất</p>
             </div>
@@ -135,71 +117,57 @@
         </div>
       </div>
 
-      <!-- Recent Activity -->
-      <div class="activity-section">
-        <div class="section-header">
+      <div class="activity-panel">
+        <div class="panel-header">
           <h3>Hoạt động gần đây</h3>
-          <button class="btn-view-all">Xem tất cả →</button>
+          <button class="view-all">Xem tất cả</button>
         </div>
-        <div class="activity-list">
-          <div class="activity-item" v-for="activity in recentActivities" :key="activity.id">
-            <div class="activity-icon" :class="activity.type">
-              <component :is="activity.icon" />
+        <div class="activity-feed">
+          <div class="feed-item" v-for="activity in recentActivities" :key="activity.id">
+            <div class="feed-icon" :class="activity.type" v-html="activity.icon" />
+            <div class="feed-content">
+              <p class="feed-text">{{ activity.text }}</p>
+              <span class="feed-time">{{ activity.time }}</span>
             </div>
-            <div class="activity-content">
-              <p class="activity-text">{{ activity.text }}</p>
-              <span class="activity-time">{{ activity.time }}</span>
-            </div>
-            <span class="activity-status" :class="activity.status">{{ activity.statusText }}</span>
+            <span class="feed-status" :class="activity.status">{{ activity.statusText }}</span>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ============================================================ -->
-    <!-- TAB 2: THỐNG KÊ NGƯỜI DÙNG -->
+    <!-- TAB: NGƯỜI DÙNG -->
     <!-- ============================================================ -->
-    <div v-if="activeTab === 'users'" class="tab-panel">
-      <div class="tab-header">
+    <section v-if="activeTab === 'users'" class="tab-content">
+      <div class="section-head">
         <div>
-          <h2>👥 Thống kê người dùng</h2>
+          <h2>Thống kê người dùng</h2>
           <p>Phân tích chi tiết về người dùng trong hệ thống</p>
         </div>
-        <div class="tab-actions">
-          <button class="btn-export" @click="exportData('users')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Xuất báo cáo
-          </button>
+        <button class="export-btn" @click="exportData('users')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Xuất báo cáo
+        </button>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card" v-for="card in userStatCards" :key="card.label">
+          <span class="metric-value">{{ card.value }}</span>
+          <span class="metric-label">{{ card.label }}</span>
+          <span class="metric-trend" :class="card.trend" v-if="card.trend">{{ card.trendValue }}</span>
         </div>
       </div>
 
-      <!-- User Stats Grid -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="card in userStatCards" :key="card.label">
-          <div class="stat-card-icon" :style="{ background: card.iconBg }">
-            <component :is="card.icon" />
-          </div>
-          <div class="stat-card-content">
-            <span class="stat-card-value">{{ card.value }}</span>
-            <span class="stat-card-label">{{ card.label }}</span>
-          </div>
-          <div class="stat-card-trend" :class="card.trend" v-if="card.trend">
-            {{ card.trendValue }}
-          </div>
-        </div>
-      </div>
-
-      <!-- User Charts -->
-      <div class="charts-grid two-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
-              <h3>Biểu đồ tăng trưởng</h3>
-              <p>Người dùng mới theo tháng</p>
+      <div class="chart-grid two-col">
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
+              <h3>Tăng trưởng người dùng</h3>
+              <p>Số lượng người dùng mới theo tháng</p>
             </div>
           </div>
           <div class="chart-body">
@@ -207,9 +175,9 @@
           </div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
               <h3>Phân bố vai trò</h3>
               <p>Tỷ lệ người dùng theo vai trò</p>
             </div>
@@ -220,102 +188,73 @@
         </div>
       </div>
 
-      <!-- User Table - DỮ LIỆU THẬT -->
-      <div class="table-card">
+      <div class="table-wrapper">
         <div class="table-header">
-          <h3>Danh sách người dùng gần đây</h3>
-          <div class="table-actions">
-            <input type="text" placeholder="🔍 Tìm kiếm..." class="search-input" v-model="userSearch">
+          <h3>Danh sách người dùng</h3>
+          <div class="table-controls">
+            <input type="text" placeholder="Tìm kiếm..." class="search-field" v-model="userSearch">
           </div>
         </div>
-        <div class="table-responsive">
-          <table>
+        <div class="table-scroll">
+          <table class="data-table">
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Người dùng</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Lần cuối</th>
-              </tr>
+              <tr><th>ID</th><th>Người dùng</th><th>Vai trò</th><th>Trạng thái</th><th>Lần cuối</th></tr>
             </thead>
             <tbody>
-              <tr v-if="isLoadingUsers">
-                <td colspan="5" class="loading-cell">
-                  <div class="spinner-sm"></div>
-                  Đang tải dữ liệu...
-                </td>
-              </tr>
-              <tr v-else-if="filteredUsers.length === 0">
-                <td colspan="5" class="empty-cell">Không có người dùng nào</td>
-              </tr>
+              <tr v-if="isLoadingUsers"><td colspan="5" class="loading-row"><span class="loader"></span>Đang tải dữ liệu...</td></tr>
+              <tr v-else-if="filteredUsers.length === 0"><td colspan="5" class="empty-row">Không có người dùng nào</td></tr>
               <tr v-for="user in filteredUsers" :key="user.id">
                 <td>#{{ user.id }}</td>
                 <td>
                   <div class="user-cell">
-                    <img :src="user.avatar || defaultAvatar" class="user-avatar-sm" @error="handleAvatarError" loading="lazy">
+                    <img :src="user.avatar || defaultAvatar" class="user-avatar" @error="handleAvatarError" loading="lazy">
                     <div>
-                      <div class="user-name">{{ user.fullName || user.username }}</div>
-                      <div class="user-email">{{ user.email || user.username }}</div>
+                      <div class="cell-name">{{ user.fullName || user.username }}</div>
+                      <div class="cell-sub">{{ user.email || user.username }}</div>
                     </div>
                   </div>
                 </td>
-                <td><span class="role-badge" :class="getRoleClass(user.role)">{{ user.role || 'User' }}</span></td>
-                <td>
-                  <span class="status-badge" :class="user.isLocked ? 'locked' : 'active'">
-                    {{ user.isLocked ? '🔒 Đã khóa' : '✅ Hoạt động' }}
-                  </span>
-                </td>
+                <td><span class="role-tag" :class="getRoleClass(user.role)">{{ user.role || 'User' }}</span></td>
+                <td><span class="status-tag" :class="user.isLocked ? 'locked' : 'active'">{{ user.isLocked ? 'Đã khóa' : 'Hoạt động' }}</span></td>
                 <td>{{ formatDate(user.lastLoginAt) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ============================================================ -->
-    <!-- TAB 3: THỐNG KÊ SẢN PHẨM -->
+    <!-- TAB: SẢN PHẨM -->
     <!-- ============================================================ -->
-    <div v-if="activeTab === 'products'" class="tab-panel">
-      <div class="tab-header">
+    <section v-if="activeTab === 'products'" class="tab-content">
+      <div class="section-head">
         <div>
-          <h2>📦 Thống kê sản phẩm</h2>
+          <h2>Thống kê sản phẩm</h2>
           <p>Phân tích chi tiết về sản phẩm và tồn kho</p>
         </div>
-        <div class="tab-actions">
-          <button class="btn-export" @click="exportData('products')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Xuất báo cáo
-          </button>
+        <button class="export-btn" @click="exportData('products')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Xuất báo cáo
+        </button>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card" v-for="card in productStatCards" :key="card.label">
+          <span class="metric-value">{{ card.value }}</span>
+          <span class="metric-label">{{ card.label }}</span>
+          <span class="metric-trend" :class="card.trend" v-if="card.trend">{{ card.trendValue }}</span>
         </div>
       </div>
 
-      <!-- Product Stats Grid -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="card in productStatCards" :key="card.label">
-          <div class="stat-card-icon" :style="{ background: card.iconBg }">
-            <component :is="card.icon" />
-          </div>
-          <div class="stat-card-content">
-            <span class="stat-card-value">{{ card.value }}</span>
-            <span class="stat-card-label">{{ card.label }}</span>
-          </div>
-          <div class="stat-card-trend" :class="card.trend" v-if="card.trend">
-            {{ card.trendValue }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Product Charts -->
-      <div class="charts-grid two-col">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
+      <div class="chart-grid two-col">
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
               <h3>Tình trạng tồn kho</h3>
               <p>Phân bố sản phẩm theo tình trạng</p>
             </div>
@@ -325,11 +264,11 @@
           </div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
-              <h3>Phân bố theo danh mục</h3>
-              <p>Số lượng sản phẩm theo từng danh mục</p>
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
+              <h3>Phân bố danh mục</h3>
+              <p>Số lượng sản phẩm theo danh mục</p>
             </div>
           </div>
           <div class="chart-body">
@@ -338,117 +277,78 @@
         </div>
       </div>
 
-      <!-- Product Table - DỮ LIỆU THẬT -->
-      <div class="table-card">
+      <div class="table-wrapper">
         <div class="table-header">
-          <h3>Danh sách sản phẩm gần đây</h3>
-          <div class="table-actions">
-            <input type="text" placeholder="🔍 Tìm kiếm..." class="search-input" v-model="productSearch">
+          <h3>Danh sách sản phẩm</h3>
+          <div class="table-controls">
+            <input type="text" placeholder="Tìm kiếm..." class="search-field" v-model="productSearch">
             <select class="filter-select" v-model="productCategoryFilter">
               <option value="">Tất cả danh mục</option>
               <option v-for="cat in productCategories" :key="cat" :value="cat">{{ cat }}</option>
             </select>
           </div>
         </div>
-        <div class="table-responsive">
-          <table>
+        <div class="table-scroll">
+          <table class="data-table">
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Sản phẩm</th>
-                <th>Danh mục</th>
-                <th>Tồn kho</th>
-                <th>Giá</th>
-                <th>Trạng thái</th>
-              </tr>
+              <tr><th>ID</th><th>Sản phẩm</th><th>Danh mục</th><th>Tồn kho</th><th>Giá</th><th>Trạng thái</th></tr>
             </thead>
             <tbody>
-              <tr v-if="isLoadingProducts">
-                <td colspan="6" class="loading-cell">
-                  <div class="spinner-sm"></div>
-                  Đang tải dữ liệu...
-                </td>
-              </tr>
-              <tr v-else-if="filteredProducts.length === 0">
-                <td colspan="6" class="empty-cell">Không có sản phẩm nào</td>
-              </tr>
+              <tr v-if="isLoadingProducts"><td colspan="6" class="loading-row"><span class="loader"></span>Đang tải dữ liệu...</td></tr>
+              <tr v-else-if="filteredProducts.length === 0"><td colspan="6" class="empty-row">Không có sản phẩm nào</td></tr>
               <tr v-for="product in filteredProducts" :key="product.id">
                 <td>#{{ product.id }}</td>
                 <td>
                   <div class="product-cell">
-                    <img 
-                      :src="getProductImage(product)" 
-                      class="product-image-sm" 
-                      @error="handleProductImageError"
-                      loading="lazy"
-                    >
+                    <img :src="getProductImage(product)" class="product-thumb" @error="handleProductImageError" loading="lazy">
                     <div>
-                      <div class="product-name">{{ product.name || product.productName }}</div>
-                      <div class="product-sku">SKU: {{ product.sku || product.code || 'N/A' }}</div>
+                      <div class="cell-name">{{ product.name || product.productName }}</div>
+                      <div class="cell-sub">SKU: {{ product.sku || product.code || 'N/A' }}</div>
                     </div>
                   </div>
                 </td>
-                <td><span class="category-badge">{{ product.category || 'Chưa phân loại' }}</span></td>
-                <td>
-                  <span class="stock-value" :class="getStockClass(product.stock || product.stockQuantity || 0)">
-                    {{ product.stock || product.stockQuantity || 0 }}
-                  </span>
-                </td>
+                <td><span class="category-tag">{{ product.category || 'Chưa phân loại' }}</span></td>
+                <td><span class="stock-value" :class="getStockClass(product.stock || product.stockQuantity || 0)">{{ product.stock || product.stockQuantity || 0 }}</span></td>
                 <td>{{ formatCurrency(product.price || 0) }}</td>
-                <td>
-                  <span class="status-badge" :class="getStockStatus(product.stock || product.stockQuantity || 0)">
-                    {{ getStockStatusText(product.stock || product.stockQuantity || 0) }}
-                  </span>
-                </td>
+                <td><span class="status-tag" :class="getStockStatus(product.stock || product.stockQuantity || 0)">{{ getStockStatusText(product.stock || product.stockQuantity || 0) }}</span></td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ============================================================ -->
-    <!-- TAB 4: ĐƠN HÀNG -->
+    <!-- TAB: ĐƠN HÀNG -->
     <!-- ============================================================ -->
-    <div v-if="activeTab === 'orders'" class="tab-panel">
-      <div class="tab-header">
+    <section v-if="activeTab === 'orders'" class="tab-content">
+      <div class="section-head">
         <div>
-          <h2>📋 Thống kê đơn hàng</h2>
+          <h2>Thống kê đơn hàng</h2>
           <p>Phân tích chi tiết về đơn hàng và doanh thu</p>
         </div>
-        <div class="tab-actions">
-          <button class="btn-export" @click="exportData('orders')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Xuất báo cáo
-          </button>
+        <button class="export-btn" @click="exportData('orders')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Xuất báo cáo
+        </button>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-card" v-for="card in orderStatCards" :key="card.label">
+          <span class="metric-value">{{ card.value }}</span>
+          <span class="metric-label">{{ card.label }}</span>
+          <span class="metric-trend" :class="card.trend" v-if="card.trend">{{ card.trendValue }}</span>
         </div>
       </div>
 
-      <!-- Order Stats Grid -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="card in orderStatCards" :key="card.label">
-          <div class="stat-card-icon" :style="{ background: card.iconBg }">
-            <component :is="card.icon" />
-          </div>
-          <div class="stat-card-content">
-            <span class="stat-card-value">{{ card.value }}</span>
-            <span class="stat-card-label">{{ card.label }}</span>
-          </div>
-          <div class="stat-card-trend" :class="card.trend" v-if="card.trend">
-            {{ card.trendValue }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Order Charts -->
-      <div class="charts-grid">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
+      <div class="chart-grid">
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
               <h3>Đơn hàng theo tháng</h3>
               <p>Số lượng đơn hàng trong 6 tháng gần nhất</p>
             </div>
@@ -458,9 +358,9 @@
           </div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
+        <div class="chart-container">
+          <div class="chart-head">
+            <div class="chart-title">
               <h3>Trạng thái đơn hàng</h3>
               <p>Phân bố đơn hàng theo trạng thái</p>
             </div>
@@ -470,7 +370,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -487,22 +387,19 @@ const activeTab = ref('overview');
 const selectedYear = ref(2024);
 const isRefreshing = ref(false);
 
-// Search filters
 const userSearch = ref('');
 const productSearch = ref('');
 const productCategoryFilter = ref('');
 
-// Loading states
 const isLoadingUsers = ref(true);
 const isLoadingProducts = ref(true);
 
-const defaultAvatar = 'https://ui-avatars.com/api/?background=6366f1&color=fff&bold=true&name=User';
-const defaultProductImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjRTJFOEZGMCIvPjxwYXRoIGQ9Ik0yMCAxMkwyNiAyMEwyMCAyOEwxNCAyMEwyMCAxMloiIGZpbGw9IiM5M0E0RkYiLz48L3N2Zz4=';
+const defaultAvatar = 'https://ui-avatars.com/api/?background=4f46e5&color=fff&bold=true&name=User';
+const defaultProductImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggZD0iTTIwIDEyTDI2IDIwTDIwIDI4TDE0IDIwTDIwIDEyWiIgZmlsbD0iIzk0YTNiOCIvPjwvc3ZnPg==';
 
 // ==================== DATA ====================
 const users = ref([]);
 const products = ref([]);
-const orders = ref([]);
 
 const userStats = ref({ totalUsers: 0, adminCount: 0, staffCount: 0, totalLocked: 0 });
 const orderStats = ref({ totalOrders: 0, totalRevenue: 0, pending: 0, completed: 0, cancelled: 0 });
@@ -526,7 +423,6 @@ const currentDate = computed(() => {
   return new Date().toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
 });
 
-// Filtered users
 const filteredUsers = computed(() => {
   if (!userSearch.value) return users.value.slice(0, 10);
   const keyword = userSearch.value.toLowerCase();
@@ -539,7 +435,6 @@ const filteredUsers = computed(() => {
     .slice(0, 10);
 });
 
-// Filtered products
 const filteredProducts = computed(() => {
   let result = products.value;
   
@@ -559,7 +454,6 @@ const filteredProducts = computed(() => {
   return result.slice(0, 10);
 });
 
-// Product categories
 const productCategories = computed(() => {
   const cats = new Set();
   products.value.forEach(p => {
@@ -568,12 +462,22 @@ const productCategories = computed(() => {
   return Array.from(cats);
 });
 
+// ==================== ICONS (dạng SVG string để dùng v-html) ====================
+const ICONS = {
+  home: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>`,
+  users: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+  box: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3 27 9 24 15 27 21 24"/></svg>`,
+  shopping: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`,
+  check: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+  user: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+};
+
 // ==================== TABS ====================
 const tabs = [
-  { key: 'overview', label: 'Tổng quan', icon: 'HomeIcon', badge: null },
-  { key: 'users', label: 'Người dùng', icon: 'UsersIcon', badge: null },
-  { key: 'products', label: 'Sản phẩm', icon: 'BoxIcon', badge: null },
-  { key: 'orders', label: 'Đơn hàng', icon: 'ShoppingBagIcon', badge: null }
+  { key: 'overview', label: 'Tổng quan', icon: ICONS.home, badge: null },
+  { key: 'users', label: 'Người dùng', icon: ICONS.users, badge: null },
+  { key: 'products', label: 'Sản phẩm', icon: ICONS.box, badge: null },
+  { key: 'orders', label: 'Đơn hàng', icon: ICONS.shopping, badge: null }
 ];
 
 // ==================== QUICK STATS ====================
@@ -581,32 +485,24 @@ const quickStats = computed(() => [
   { 
     label: 'Tổng doanh thu', 
     value: formatCompactCurrency(orderStats.value.totalRevenue),
-    icon: 'DollarIcon',
-    color: 'linear-gradient(135deg, #667eea, #764ba2)',
     trend: 'up',
     change: '+12.5%'
   },
   { 
     label: 'Đơn hàng', 
     value: orderStats.value.totalOrders.toLocaleString(),
-    icon: 'ShoppingBagIcon',
-    color: 'linear-gradient(135deg, #f093fb, #f5576c)',
     trend: 'up',
     change: '+8.2%'
   },
   { 
     label: 'Sản phẩm', 
     value: productStats.value.totalProducts,
-    icon: 'BoxIcon',
-    color: 'linear-gradient(135deg, #4facfe, #00f2fe)',
     trend: 'up',
     change: '+5.7%'
   },
   { 
     label: 'Người dùng', 
     value: userStats.value.totalUsers,
-    icon: 'UsersIcon',
-    color: 'linear-gradient(135deg, #43e97b, #38f9d7)',
     trend: 'up',
     change: '+15.3%'
   }
@@ -617,8 +513,6 @@ const overviewStats = computed(() => [
   {
     label: 'Tổng người dùng',
     value: userStats.value.totalUsers,
-    icon: 'UsersIcon',
-    iconBg: '#eef2ff',
     trend: 'up',
     trendValue: '+12%',
     progress: Math.min((userStats.value.totalUsers / 200) * 100, 100)
@@ -626,8 +520,6 @@ const overviewStats = computed(() => [
   {
     label: 'Đơn hàng',
     value: orderStats.value.totalOrders.toLocaleString(),
-    icon: 'ShoppingBagIcon',
-    iconBg: '#ecfdf5',
     trend: 'up',
     trendValue: '+8%',
     progress: Math.min((orderStats.value.totalOrders / 500) * 100, 100)
@@ -635,8 +527,6 @@ const overviewStats = computed(() => [
   {
     label: 'Doanh thu',
     value: formatCompactCurrency(orderStats.value.totalRevenue),
-    icon: 'DollarIcon',
-    iconBg: '#fffbeb',
     trend: 'up',
     trendValue: '+15%',
     progress: 78
@@ -644,8 +534,6 @@ const overviewStats = computed(() => [
   {
     label: 'Sản phẩm',
     value: productStats.value.totalProducts,
-    icon: 'BoxIcon',
-    iconBg: '#f0fdf4',
     trend: 'up',
     trendValue: '+5%',
     progress: Math.min((productStats.value.totalProducts / 300) * 100, 100)
@@ -653,32 +541,32 @@ const overviewStats = computed(() => [
 ]);
 
 const userStatCards = computed(() => [
-  { label: 'Tổng người dùng', value: userStats.value.totalUsers, icon: 'UsersIcon', iconBg: '#eef2ff' },
-  { label: 'Quản trị viên', value: userStats.value.adminCount, icon: 'ShieldIcon', iconBg: '#fef2f2' },
-  { label: 'Nhân viên', value: userStats.value.staffCount, icon: 'UserIcon', iconBg: '#ecfdf5' },
-  { label: 'Tài khoản bị khóa', value: userStats.value.totalLocked, icon: 'LockIcon', iconBg: '#fef3c7', trend: 'down', trendValue: '-2%' }
+  { label: 'Tổng người dùng', value: userStats.value.totalUsers },
+  { label: 'Quản trị viên', value: userStats.value.adminCount },
+  { label: 'Nhân viên', value: userStats.value.staffCount },
+  { label: 'Tài khoản bị khóa', value: userStats.value.totalLocked, trend: 'down', trendValue: '-2%' }
 ]);
 
 const productStatCards = computed(() => [
-  { label: 'Tổng sản phẩm', value: productStats.value.totalProducts, icon: 'BoxIcon', iconBg: '#f0fdf4' },
-  { label: 'Tổng tồn kho', value: productStats.value.totalStock.toLocaleString(), icon: 'PackageIcon', iconBg: '#ecfeff' },
-  { label: 'Sắp hết hàng', value: productStats.value.lowStockCount, icon: 'AlertIcon', iconBg: '#fef3c7', trend: 'down', trendValue: '-3%' },
-  { label: 'Hết hàng', value: productStats.value.outOfStock || 0, icon: 'XCircleIcon', iconBg: '#fef2f2', trend: 'down', trendValue: '-1%' }
+  { label: 'Tổng sản phẩm', value: productStats.value.totalProducts },
+  { label: 'Tổng tồn kho', value: productStats.value.totalStock.toLocaleString() },
+  { label: 'Sắp hết hàng', value: productStats.value.lowStockCount, trend: 'down', trendValue: '-3%' },
+  { label: 'Hết hàng', value: productStats.value.outOfStock || 0, trend: 'down', trendValue: '-1%' }
 ]);
 
 const orderStatCards = computed(() => [
-  { label: 'Tổng đơn hàng', value: orderStats.value.totalOrders.toLocaleString(), icon: 'ShoppingBagIcon', iconBg: '#eef2ff' },
-  { label: 'Doanh thu', value: formatCompactCurrency(orderStats.value.totalRevenue), icon: 'DollarIcon', iconBg: '#fffbeb' },
-  { label: 'Đang xử lý', value: orderStats.value.pending || 0, icon: 'ClockIcon', iconBg: '#fef3c7' },
-  { label: 'Hoàn thành', value: orderStats.value.completed || 0, icon: 'CheckIcon', iconBg: '#ecfdf5' }
+  { label: 'Tổng đơn hàng', value: orderStats.value.totalOrders.toLocaleString() },
+  { label: 'Doanh thu', value: formatCompactCurrency(orderStats.value.totalRevenue) },
+  { label: 'Đang xử lý', value: orderStats.value.pending || 0 },
+  { label: 'Hoàn thành', value: orderStats.value.completed || 0 }
 ]);
 
 // ==================== RECENT ACTIVITIES ====================
 const recentActivities = ref([
-  { id: 1, text: 'Đăng nhập thành công', time: 'Vừa xong', type: 'success', icon: 'CheckIcon', status: 'completed', statusText: '✅ Hoàn thành' },
-  { id: 2, text: 'Đơn hàng mới #ORD-2024-001', time: '5 phút trước', type: 'info', icon: 'ShoppingBagIcon', status: 'pending', statusText: '⏳ Đang xử lý' },
-  { id: 3, text: 'Cập nhật sản phẩm: iPhone 15', time: '15 phút trước', type: 'warning', icon: 'BoxIcon', status: 'completed', statusText: '✅ Đã cập nhật' },
-  { id: 4, text: 'Người dùng mới đăng ký', time: '30 phút trước', type: 'info', icon: 'UserIcon', status: 'completed', statusText: '✅ Thành công' }
+  { id: 1, text: 'Đăng nhập thành công', time: 'Vừa xong', type: 'success', icon: ICONS.check, status: 'completed', statusText: 'Hoàn thành' },
+  { id: 2, text: 'Đơn hàng mới #ORD-2024-001', time: '5 phút trước', type: 'info', icon: ICONS.shopping, status: 'pending', statusText: 'Đang xử lý' },
+  { id: 3, text: 'Cập nhật sản phẩm: iPhone 15', time: '15 phút trước', type: 'warning', icon: ICONS.box, status: 'completed', statusText: 'Đã cập nhật' },
+  { id: 4, text: 'Người dùng mới đăng ký', time: '30 phút trước', type: 'info', icon: ICONS.user, status: 'completed', statusText: 'Thành công' }
 ]);
 
 // ==================== CHART REFERENCES ====================
@@ -691,7 +579,7 @@ let categoryChart = null;
 let orderChart = null;
 let orderStatusChart = null;
 
-// ==================== IMAGE HELPERS ====================
+// ==================== HELPERS ====================
 function getProductImage(product) {
   if (product.image) return product.image;
   if (product.images && product.images.length > 0) return product.images[0];
@@ -707,7 +595,6 @@ function handleProductImageError(e) {
   e.target.src = defaultProductImage;
 }
 
-// ==================== FORMAT HELPERS ====================
 function formatDate(date) {
   if (!date) return '--/--/----';
   const d = new Date(date);
@@ -726,16 +613,15 @@ function formatCompactCurrency(value) {
   return value.toLocaleString() + ' ₫';
 }
 
-// ==================== ROLE HELPERS ====================
 function getRoleClass(role) {
-  const map = { Admin: 'role-admin', Sales: 'role-sales', Warehouse: 'role-warehouse', User: 'role-user' };
-  return map[role] || 'role-default';
+  const map = { Admin: 'admin', Sales: 'sales', Warehouse: 'warehouse', User: 'user' };
+  return map[role] || 'default';
 }
 
 function getStockClass(stock) {
-  if (stock === 0) return 'stock-zero';
-  if (stock <= 10) return 'stock-low';
-  return 'stock-normal';
+  if (stock === 0) return 'zero';
+  if (stock <= 10) return 'low';
+  return 'normal';
 }
 
 function getStockStatus(stock) {
@@ -758,7 +644,6 @@ async function loadAllData() {
     loadOrderStats()
   ]);
   
-  // Update stats after loading data
   updateStats();
   
   nextTick(() => {
@@ -771,7 +656,6 @@ async function loadAllData() {
 async function loadUsers() {
   isLoadingUsers.value = true;
   try {
-    // Thử lấy dữ liệu thật với timeout 3s
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     
@@ -779,16 +663,12 @@ async function loadUsers() {
     clearTimeout(timeoutId);
     
     users.value = res.data || [];
-    console.log('✅ Loaded real user data:', users.value.length);
   } catch (error) {
-    console.warn('⚠️ Failed to load real users, using fallback data:', error.message);
-    // Fallback data
     users.value = [
       { id: 1, username: 'admin', fullName: 'Nguyễn Văn A', email: 'admin@example.com', role: 'Admin', isLocked: false, lastLoginAt: new Date(), avatar: '' },
       { id: 2, username: 'sales1', fullName: 'Trần Thị B', email: 'sales1@example.com', role: 'Sales', isLocked: false, lastLoginAt: new Date(), avatar: '' },
       { id: 3, username: 'warehouse1', fullName: 'Lê Văn C', email: 'warehouse1@example.com', role: 'Warehouse', isLocked: true, lastLoginAt: new Date(), avatar: '' },
-      { id: 4, username: 'sales2', fullName: 'Phạm Thị D', email: 'sales2@example.com', role: 'Sales', isLocked: false, lastLoginAt: new Date(), avatar: '' },
-      { id: 5, username: 'user1', fullName: 'Hoàng Văn E', email: 'user1@example.com', role: 'User', isLocked: false, lastLoginAt: new Date(), avatar: '' }
+      { id: 4, username: 'sales2', fullName: 'Phạm Thị D', email: 'sales2@example.com', role: 'Sales', isLocked: false, lastLoginAt: new Date(), avatar: '' }
     ];
   } finally {
     isLoadingUsers.value = false;
@@ -805,17 +685,12 @@ async function loadProducts() {
     clearTimeout(timeoutId);
     
     products.value = res.data || [];
-    console.log('✅ Loaded real product data:', products.value.length);
   } catch (error) {
-    console.warn('⚠️ Failed to load real products, using fallback data:', error.message);
     products.value = [
       { id: 1, name: 'iPhone 15 Pro Max', sku: 'IP15PM-001', category: 'Điện tử', stock: 45, price: 29990000, image: '' },
       { id: 2, name: 'Samsung Galaxy S24 Ultra', sku: 'SGS24-001', category: 'Điện tử', stock: 32, price: 25990000, image: '' },
       { id: 3, name: 'Tai nghe Sony WH-1000XM5', sku: 'SONY-001', category: 'Phụ kiện', stock: 15, price: 7990000, image: '' },
-      { id: 4, name: 'Laptop Dell XPS 16', sku: 'DELL-001', category: 'Laptop', stock: 8, price: 45990000, image: '' },
-      { id: 5, name: 'iPad Pro M4 12.9"', sku: 'IPAD-001', category: 'Điện tử', stock: 20, price: 30990000, image: '' },
-      { id: 6, name: 'Áo thun Polo', sku: 'POLO-001', category: 'Thời trang', stock: 120, price: 450000, image: '' },
-      { id: 7, name: 'Quần Jean Slim', sku: 'JEAN-001', category: 'Thời trang', stock: 85, price: 890000, image: '' }
+      { id: 4, name: 'Laptop Dell XPS 16', sku: 'DELL-001', category: 'Laptop', stock: 8, price: 45990000, image: '' }
     ];
   } finally {
     isLoadingProducts.value = false;
@@ -837,9 +712,7 @@ async function loadOrderStats() {
       completed: res.data?.completed || 0,
       cancelled: res.data?.cancelled || 0
     };
-    console.log('✅ Loaded real order stats');
   } catch (error) {
-    console.warn('⚠️ Failed to load real order stats, using fallback data:', error.message);
     orderStats.value = {
       totalOrders: 342,
       totalRevenue: 125000000,
@@ -851,7 +724,6 @@ async function loadOrderStats() {
 }
 
 function updateStats() {
-  // Update user stats
   userStats.value = {
     totalUsers: users.value.length,
     adminCount: users.value.filter(u => u.role === 'Admin').length,
@@ -859,7 +731,6 @@ function updateStats() {
     totalLocked: users.value.filter(u => u.isLocked).length
   };
   
-  // Update product stats
   let totalStock = 0;
   let lowStockCount = 0;
   let outOfStock = 0;
@@ -904,10 +775,10 @@ function updateRevenueChart() {
   if (ctx) {
     if (revenueChart) revenueChart.destroy();
     
-    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 320);
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
-    gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.1)');
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.01)');
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(79, 70, 229, 0.3)');
+    gradient.addColorStop(0.5, 'rgba(79, 70, 229, 0.08)');
+    gradient.addColorStop(1, 'rgba(79, 70, 229, 0.01)');
 
     revenueChart = new Chart(ctx, {
       type: 'line',
@@ -916,16 +787,16 @@ function updateRevenueChart() {
         datasets: [{
           label: 'Doanh thu',
           data: data,
-          borderColor: '#6366f1',
+          borderColor: '#4f46e5',
           backgroundColor: gradient,
-          borderWidth: 3,
+          borderWidth: 2.5,
           fill: true,
           tension: 0.4,
-          pointRadius: 4,
-          pointBackgroundColor: '#6366f1',
+          pointRadius: 3,
+          pointBackgroundColor: '#4f46e5',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
-          pointHoverRadius: 7
+          pointHoverRadius: 6
         }]
       },
       options: {
@@ -935,8 +806,8 @@ function updateRevenueChart() {
           legend: { display: false },
           tooltip: {
             backgroundColor: '#1e293b',
-            cornerRadius: 12,
-            padding: 14,
+            cornerRadius: 8,
+            padding: 12,
             callbacks: {
               label: (ctx) => 'Doanh thu: ' + ctx.raw.toLocaleString('vi-VN') + ' ₫'
             }
@@ -946,11 +817,11 @@ function updateRevenueChart() {
           y: {
             beginAtZero: true,
             grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { callback: (v) => (v / 1000000).toFixed(0) + 'M', color: '#94a3b8', font: { size: 11 } }
+            ticks: { callback: (v) => (v / 1000000).toFixed(0) + 'M', color: '#94a3b8', font: { size: 10 } }
           },
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           }
         }
       }
@@ -963,32 +834,32 @@ function updateTopProductsChart() {
   if (ctx) {
     if (topProductsChart) topProductsChart.destroy();
     
-    const productNames = products.value.slice(0, 5).map(p => p.name || p.productName || 'Sản phẩm');
-    const productData = products.value.slice(0, 5).map(p => Math.floor(Math.random() * 50) + 10);
+    const names = products.value.slice(0, 5).map(p => p.name || p.productName || 'Sản phẩm');
+    const data = products.value.slice(0, 5).map(p => Math.floor(Math.random() * 50) + 10);
     
     topProductsChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: productNames.length ? productNames : ['iPhone 15', 'Samsung S24', 'Laptop Dell', 'Tai nghe Sony', 'iPad Pro'],
+        labels: names.length ? names : ['iPhone 15', 'Samsung S24', 'Laptop Dell', 'Tai nghe Sony', 'iPad Pro'],
         datasets: [{
-          data: productData.length ? productData : [45, 38, 25, 30, 20],
-          backgroundColor: ['rgba(99,102,241,0.9)', 'rgba(16,185,129,0.9)', 'rgba(245,158,11,0.9)', 'rgba(239,68,68,0.9)', 'rgba(139,92,246,0.9)'],
+          data: data.length ? data : [45, 38, 25, 30, 20],
+          backgroundColor: ['#4f46e5', '#059669', '#d97706', '#dc2626', '#7c3aed'],
           borderWidth: 2,
           borderColor: '#fff',
-          hoverOffset: 10
+          hoverOffset: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
+        cutout: '68%',
         plugins: {
           legend: { 
             position: 'bottom', 
             labels: { 
-              padding: 16,
+              padding: 12,
               usePointStyle: true,
-              pointStyleWidth: 10,
+              pointStyleWidth: 8,
               font: { size: 11 },
               color: '#64748b'
             } 
@@ -996,7 +867,7 @@ function updateTopProductsChart() {
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + ctx.raw + ' đơn hàng' }
           }
         }
@@ -1010,10 +881,6 @@ function updateUserGrowthChart() {
   if (ctx) {
     if (userGrowthChart) userGrowthChart.destroy();
     
-    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
-
     userGrowthChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -1021,9 +888,8 @@ function updateUserGrowthChart() {
         datasets: [{
           label: 'Người dùng mới',
           data: [12, 18, 15, 22, 28, 35, 42, 38, 45, 52, 48, 58],
-          backgroundColor: 'rgba(16, 185, 129, 0.7)',
-          borderRadius: 6,
-          borderSkipped: false
+          backgroundColor: 'rgba(5, 150, 105, 0.7)',
+          borderRadius: 4
         }]
       },
       options: {
@@ -1034,7 +900,7 @@ function updateUserGrowthChart() {
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => 'Người dùng mới: ' + ctx.raw }
           }
         },
@@ -1042,11 +908,11 @@ function updateUserGrowthChart() {
           y: {
             beginAtZero: true,
             grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           },
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           }
         }
       }
@@ -1062,15 +928,14 @@ function updateUserRoleChart() {
     userRoleChart = new Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Admin', 'Sales', 'Warehouse', 'User'],
+        labels: ['Admin', 'Sales', 'Warehouse'],
         datasets: [{
           data: [
             userStats.value.adminCount || 1,
             userStats.value.staffCount * 0.6 || 5,
-            userStats.value.staffCount * 0.4 || 3,
-            0
+            userStats.value.staffCount * 0.4 || 3
           ],
-          backgroundColor: ['#ef4444', '#10b981', '#f59e0b', '#6366f1'],
+          backgroundColor: ['#dc2626', '#059669', '#d97706'],
           borderWidth: 2,
           borderColor: '#fff'
         }]
@@ -1082,17 +947,17 @@ function updateUserRoleChart() {
           legend: {
             position: 'bottom',
             labels: {
-              padding: 16,
+              padding: 12,
               usePointStyle: true,
-              pointStyleWidth: 10,
-              font: { size: 12 },
+              pointStyleWidth: 8,
+              font: { size: 11 },
               color: '#64748b'
             }
           },
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + ctx.raw + ' người' }
           }
         }
@@ -1106,19 +971,15 @@ function updateInventoryStatusChart() {
   if (ctx) {
     if (inventoryStatusChart) inventoryStatusChart.destroy();
     
-    const inStock = productStats.value.totalProducts - productStats.value.lowStockCount - productStats.value.outOfStock;
+    const inStock = Math.max(productStats.value.totalProducts - productStats.value.lowStockCount - productStats.value.outOfStock, 0);
     
     inventoryStatusChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['Còn hàng', 'Sắp hết', 'Hết hàng'],
         datasets: [{
-          data: [
-            Math.max(inStock, 0),
-            productStats.value.lowStockCount || 0,
-            productStats.value.outOfStock || 0
-          ],
-          backgroundColor: ['rgba(16,185,129,0.9)', 'rgba(245,158,11,0.9)', 'rgba(239,68,68,0.9)'],
+          data: [inStock, productStats.value.lowStockCount || 0, productStats.value.outOfStock || 0],
+          backgroundColor: ['#059669', '#d97706', '#dc2626'],
           borderWidth: 2,
           borderColor: '#fff'
         }]
@@ -1131,17 +992,17 @@ function updateInventoryStatusChart() {
           legend: {
             position: 'bottom',
             labels: {
-              padding: 16,
+              padding: 12,
               usePointStyle: true,
-              pointStyleWidth: 10,
-              font: { size: 12 },
+              pointStyleWidth: 8,
+              font: { size: 11 },
               color: '#64748b'
             }
           },
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + ctx.raw + ' sản phẩm' }
           }
         }
@@ -1155,7 +1016,6 @@ function updateCategoryChart() {
   if (ctx) {
     if (categoryChart) categoryChart.destroy();
     
-    // Group products by category
     const categoryMap = {};
     products.value.forEach(p => {
       const cat = p.category || 'Chưa phân loại';
@@ -1164,19 +1024,17 @@ function updateCategoryChart() {
     
     const labels = Object.keys(categoryMap);
     const data = Object.values(categoryMap);
-    
-    const colors = ['rgba(99,102,241,0.8)', 'rgba(16,185,129,0.8)', 'rgba(245,158,11,0.8)', 'rgba(239,68,68,0.8)', 'rgba(139,92,246,0.8)'];
+    const colors = ['#4f46e5', '#059669', '#d97706', '#dc2626', '#7c3aed'];
     
     categoryChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: labels.length ? labels : ['Điện tử', 'Thời trang', 'Phụ kiện', 'Laptop', 'Gia dụng'],
+        labels: labels.length ? labels : ['Điện tử', 'Thời trang', 'Phụ kiện'],
         datasets: [{
           label: 'Số lượng sản phẩm',
-          data: data.length ? data : [45, 32, 28, 20, 15],
-          backgroundColor: colors.slice(0, Math.max(labels.length, 5)),
-          borderRadius: 6,
-          borderSkipped: false
+          data: data.length ? data : [45, 32, 28],
+          backgroundColor: colors.slice(0, Math.max(labels.length, 3)),
+          borderRadius: 4
         }]
       },
       options: {
@@ -1188,7 +1046,7 @@ function updateCategoryChart() {
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => 'Số lượng: ' + ctx.raw + ' sản phẩm' }
           }
         },
@@ -1196,11 +1054,11 @@ function updateCategoryChart() {
           x: {
             beginAtZero: true,
             grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           },
           y: {
             grid: { display: false },
-            ticks: { color: '#64748b', font: { size: 12 } }
+            ticks: { color: '#64748b', font: { size: 11 } }
           }
         }
       }
@@ -1220,13 +1078,13 @@ function updateOrderChart() {
         datasets: [{
           label: 'Đơn hàng',
           data: [45, 52, 48, 65, 58, 72],
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99,102,241,0.1)',
-          borderWidth: 3,
+          borderColor: '#4f46e5',
+          backgroundColor: 'rgba(79, 70, 229, 0.08)',
+          borderWidth: 2.5,
           fill: true,
           tension: 0.4,
-          pointRadius: 4,
-          pointBackgroundColor: '#6366f1'
+          pointRadius: 3,
+          pointBackgroundColor: '#4f46e5'
         }]
       },
       options: {
@@ -1237,7 +1095,7 @@ function updateOrderChart() {
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => 'Đơn hàng: ' + ctx.raw }
           }
         },
@@ -1245,11 +1103,11 @@ function updateOrderChart() {
           y: {
             beginAtZero: true,
             grid: { color: '#f1f5f9', drawBorder: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           },
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', font: { size: 11 } }
+            ticks: { color: '#94a3b8', font: { size: 10 } }
           }
         }
       }
@@ -1273,7 +1131,7 @@ function updateOrderStatusChart() {
         labels: ['Hoàn thành', 'Đang xử lý', 'Đã hủy'],
         datasets: [{
           data: [completed, pending, cancelled],
-          backgroundColor: ['rgba(16,185,129,0.9)', 'rgba(245,158,11,0.9)', 'rgba(239,68,68,0.9)'],
+          backgroundColor: ['#059669', '#d97706', '#dc2626'],
           borderWidth: 2,
           borderColor: '#fff'
         }]
@@ -1286,17 +1144,17 @@ function updateOrderStatusChart() {
           legend: {
             position: 'bottom',
             labels: {
-              padding: 16,
+              padding: 12,
               usePointStyle: true,
-              pointStyleWidth: 10,
-              font: { size: 12 },
+              pointStyleWidth: 8,
+              font: { size: 11 },
               color: '#64748b'
             }
           },
           tooltip: {
             backgroundColor: '#1e293b',
             cornerRadius: 8,
-            padding: 12,
+            padding: 10,
             callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + ctx.raw + ' đơn' }
           }
         }
@@ -1327,7 +1185,7 @@ function switchTab(tabKey) {
   });
 }
 
-// ==================== REFRESH ====================
+// ==================== REFRESH & EXPORT ====================
 async function refreshData() {
   isRefreshing.value = true;
   await loadAllData();
@@ -1336,7 +1194,6 @@ async function refreshData() {
   }, 1000);
 }
 
-// ==================== EXPORT ====================
 function exportData(type) {
   alert(`Đang xuất báo cáo ${type}...`);
 }
@@ -1354,17 +1211,21 @@ onMounted(async () => {
 });
 </script>
 
-<!-- ============================================================ -->
-<!-- STYLES (giữ nguyên từ file cũ) -->
-<!-- ============================================================ -->
 <style scoped>
 /* ============================================================
-   GLOBAL
+   RESET & BASE
    ============================================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 .dashboard-container {
   padding: 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+  background: #f8fafc;
   min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ============================================================
@@ -1374,12 +1235,11 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: white;
-  border-radius: 16px;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-radius: 12px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e9edf4;
 }
 
 .header-left {
@@ -1387,133 +1247,140 @@ onMounted(async () => {
   align-items: center;
 }
 
-.greeting-avatar {
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-wrapper {
   position: relative;
-  margin-right: 16px;
 }
 
-.greeting-avatar img {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+.avatar-wrapper img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #e9edf4;
 }
 
-.online-dot {
+.status-indicator {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
-  background: #10b981;
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid #fff;
 }
 
-.greeting-text h1 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
+.user-greeting {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
   margin: 0;
 }
 
-.greeting-word {
+.greeting-text {
   color: #94a3b8;
-  font-weight: 500;
-  font-size: 16px;
-  margin-right: 4px;
+  font-weight: 400;
+  font-size: 14px;
 }
 
-.greeting-name {
-  color: #1e293b;
+.user-name {
+  color: #0f172a;
+  margin-left: 4px;
 }
 
-.greeting-sub {
-  font-size: 13px;
-  color: #94a3b8;
-  margin: 4px 0 0;
+.user-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 2px;
+  font-size: 12px;
 }
 
-.role-badge {
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
+.meta-divider {
+  color: #e2e8f0;
+}
+
+.meta-text {
+  color: #94a3b8;
+}
+
+.role-tag {
+  padding: 1px 10px;
+  border-radius: 10px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
+  background: #f1f5f9;
+  color: #475569;
 }
 
-.role-admin { background: #fef2f2; color: #ef4444; }
-.role-sales { background: #ecfdf5; color: #10b981; }
-.role-warehouse { background: #ecfeff; color: #06b6d4; }
-.role-user { background: #f3f4f6; color: #6b7280; }
-.role-default { background: #f3f4f6; color: #6b7280; }
+.role-tag.admin { background: #fef2f2; color: #dc2626; }
+.role-tag.sales { background: #ecfdf5; color: #059669; }
+.role-tag.warehouse { background: #ecfeff; color: #0891b2; }
+.role-tag.user { background: #f3f4f6; color: #6b7280; }
+.role-tag.default { background: #f3f4f6; color: #6b7280; }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
-}
-
-.header-date {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  padding: 8px 16px;
-  background: #f8fafc;
-  border-radius: 10px;
 }
 
-.header-date svg {
-  width: 20px;
-  height: 20px;
-  color: #6366f1;
-}
-
-.header-date div {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-day {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1e293b;
-  text-transform: capitalize;
-}
-
-.date-full {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.btn-refresh {
+.date-display {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 6px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.date-display svg {
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.date-day {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.date-full {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: #ffffff;
+  border: 1px solid #e9edf4;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 500;
   color: #475569;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-.btn-refresh:hover {
-  border-color: #6366f1;
-  color: #6366f1;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.1);
+.refresh-button:hover:not(:disabled) {
+  border-color: #4f46e5;
+  color: #4f46e5;
 }
 
-.btn-refresh svg {
-  width: 18px;
-  height: 18px;
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .spinning {
@@ -1525,88 +1392,66 @@ onMounted(async () => {
 }
 
 /* ============================================================
-   QUICK STATS
+   STATS ROW
    ============================================================ */
-.quick-stats-row {
+.stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 1px;
+  background: #e9edf4;
+  border-radius: 12px;
+  overflow: hidden;
   margin-bottom: 24px;
 }
 
-.quick-stat-item {
+.stat-item {
+  background: #ffffff;
+  padding: 20px 24px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
-  transition: all 0.3s;
-  position: relative;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.2s;
 }
 
-.quick-stat-item:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-  transform: translateY(-2px);
+.stat-item:hover {
+  background: #fafbfc;
 }
 
-.quick-stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.quick-stat-icon svg {
-  width: 24px;
-  height: 24px;
-  color: white;
-}
-
-.quick-stat-info {
-  flex: 1;
-}
-
-.quick-stat-number {
-  font-size: 18px;
+.stat-number {
+  font-size: 26px;
   font-weight: 700;
-  color: #1e293b;
-  display: block;
+  color: #0f172a;
+  letter-spacing: -0.5px;
 }
 
-.quick-stat-label {
-  font-size: 12px;
+.stat-label {
+  font-size: 13px;
   color: #94a3b8;
+  font-weight: 400;
 }
 
-.quick-stat-change {
+.stat-change {
   font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
+  font-weight: 500;
 }
 
-.quick-stat-change.up { background: #ecfdf5; color: #059669; }
-.quick-stat-change.down { background: #fef2f2; color: #dc2626; }
+.stat-change.up { color: #059669; }
+.stat-change.down { color: #dc2626; }
 
 /* ============================================================
-   TABS
+   NAVIGATION TABS
    ============================================================ */
-.dashboard-tabs {
+.dashboard-nav {
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: white;
-  border-radius: 14px;
+  gap: 0;
+  background: #ffffff;
+  border-radius: 12px;
   margin-bottom: 24px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e9edf4;
+  overflow: hidden;
 }
 
-.tab-btn {
+.nav-item {
   flex: 1;
   display: flex;
   align-items: center;
@@ -1615,180 +1460,165 @@ onMounted(async () => {
   padding: 12px 20px;
   border: none;
   background: transparent;
-  border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
 }
 
-.tab-btn:hover {
+.nav-item:hover {
   background: #f8fafc;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.tab-btn.active {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.25);
+.nav-item.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+  background: #f8f7ff;
 }
 
-.tab-icon {
-  width: 18px;
-  height: 18px;
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
-.tab-badge {
-  background: rgba(255,255,255,0.2);
-  padding: 1px 8px;
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-badge {
+  background: #e9edf4;
+  padding: 0 8px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-}
-
-.tab-btn:not(.active) .tab-badge {
-  background: #e2e8f0;
   color: #64748b;
 }
 
+.nav-item.active .nav-badge {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
 /* ============================================================
-   TAB PANEL
+   TAB CONTENT
    ============================================================ */
-.tab-panel {
+.tab-content {
   animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.tab-header {
+.section-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
-.tab-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
+.section-head h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
   margin: 0;
 }
 
-.tab-header p {
+.section-head p {
   color: #94a3b8;
-  margin: 4px 0 0;
-  font-size: 14px;
+  margin: 2px 0 0;
+  font-size: 13px;
 }
 
-.btn-export {
+.export-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 13px;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e9edf4;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 500;
   color: #475569;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-.btn-export:hover {
-  border-color: #6366f1;
-  color: #6366f1;
-}
-
-.btn-export svg {
-  width: 16px;
-  height: 16px;
+.export-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
 }
 
 /* ============================================================
-   STATS GRID
+   METRIC GRID
    ============================================================ */
-.stats-grid {
+.metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.stat-card {
-  background: white;
-  border-radius: 14px;
-  padding: 20px;
-  border: 1px solid #f1f5f9;
-  transition: all 0.3s;
-  position: relative;
+.metric-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e9edf4;
+  transition: all 0.25s;
 }
 
-.stat-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-  transform: translateY(-2px);
+.metric-card:hover {
+  border-color: #d1d9e6;
 }
 
-.stat-card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.stat-card-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.stat-card-content {
-  margin-bottom: 8px;
-}
-
-.stat-card-value {
+.metric-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: #0f172a;
   display: block;
 }
 
-.stat-card-label {
+.metric-label {
   font-size: 13px;
   color: #94a3b8;
+  display: block;
+  margin-top: 2px;
 }
 
-.stat-card-trend {
+.metric-trend {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
+  margin-top: 6px;
 }
 
-.stat-card-trend.up { background: #ecfdf5; color: #059669; }
-.stat-card-trend.down { background: #fef2f2; color: #dc2626; }
+.metric-trend.up { color: #059669; }
+.metric-trend.down { color: #dc2626; }
 
-.stat-card-progress {
+.metric-bar {
   margin-top: 12px;
 }
 
-.progress-track {
-  height: 4px;
+.bar-track {
+  height: 3px;
   background: #f1f5f9;
   border-radius: 2px;
   overflow: hidden;
 }
 
-.progress-fill {
+.bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
+  background: #4f46e5;
   border-radius: 2px;
   transition: width 1s ease;
 }
@@ -1796,47 +1626,47 @@ onMounted(async () => {
 /* ============================================================
    CHARTS
    ============================================================ */
-.charts-grid {
+.chart-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 20px;
   margin-bottom: 24px;
 }
 
-.charts-grid.two-col {
+.chart-grid.two-col {
   grid-template-columns: 1fr 1fr;
 }
 
-.chart-card {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
+.chart-container {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e9edf4;
   overflow: hidden;
 }
 
-.chart-header {
+.chart-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px 0;
+  padding: 18px 24px 0;
 }
 
-.chart-header h3 {
-  font-size: 16px;
+.chart-title h3 {
+  font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
   margin: 0;
 }
 
-.chart-header p {
-  font-size: 12px;
+.chart-title p {
+  font-size: 11px;
   color: #94a3b8;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 .chart-body {
-  padding: 20px 24px 24px;
-  height: 320px;
+  padding: 16px 24px 24px;
+  height: 280px;
 }
 
 .chart-body canvas {
@@ -1844,20 +1674,20 @@ onMounted(async () => {
   height: 100% !important;
 }
 
-.year-selector {
+.year-switcher {
   display: flex;
   background: #f8fafc;
-  border-radius: 8px;
-  padding: 3px;
-  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid #e9edf4;
 }
 
 .year-btn {
-  padding: 4px 14px;
+  padding: 3px 12px;
   border: none;
   background: transparent;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 500;
   color: #64748b;
   cursor: pointer;
@@ -1865,123 +1695,124 @@ onMounted(async () => {
 }
 
 .year-btn.active {
-  background: white;
-  color: #6366f1;
+  background: #ffffff;
+  color: #4f46e5;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .year-btn:hover:not(.active) {
-  color: #1e293b;
+  color: #0f172a;
 }
 
 /* ============================================================
    ACTIVITY
    ============================================================ */
-.activity-section {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
-  padding: 20px 24px;
+.activity-panel {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e9edf4;
+  padding: 18px 24px;
 }
 
-.section-header {
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.section-header h3 {
-  font-size: 16px;
+.panel-header h3 {
+  font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
   margin: 0;
 }
 
-.btn-view-all {
+.view-all {
   background: none;
   border: none;
-  font-size: 13px;
-  color: #6366f1;
+  font-size: 12px;
+  color: #4f46e5;
   cursor: pointer;
   font-weight: 500;
 }
 
-.btn-view-all:hover {
+.view-all:hover {
   text-decoration: underline;
 }
 
-.activity-list {
+.activity-feed {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.activity-item {
+.feed-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 
-.activity-item:hover {
+.feed-item:hover {
   background: #f8fafc;
 }
 
-.activity-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.feed-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.activity-icon svg {
-  width: 18px;
-  height: 18px;
+.feed-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
-.activity-icon.success { background: #ecfdf5; color: #10b981; }
-.activity-icon.info { background: #eef2ff; color: #6366f1; }
-.activity-icon.warning { background: #fffbeb; color: #f59e0b; }
+.feed-icon.success { background: #ecfdf5; color: #059669; }
+.feed-icon.info { background: #eef2ff; color: #4f46e5; }
+.feed-icon.warning { background: #fffbeb; color: #d97706; }
 
-.activity-content {
+.feed-content {
   flex: 1;
 }
 
-.activity-text {
-  font-size: 14px;
-  color: #1e293b;
+.feed-text {
+  font-size: 13px;
+  color: #0f172a;
   margin: 0;
   font-weight: 500;
 }
 
-.activity-time {
-  font-size: 12px;
+.feed-time {
+  font-size: 11px;
   color: #94a3b8;
 }
 
-.activity-status {
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 12px;
+.feed-status {
+  font-size: 10px;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
-.activity-status.completed { background: #ecfdf5; color: #059669; }
-.activity-status.pending { background: #fffbeb; color: #d97706; }
+.feed-status.completed { background: #ecfdf5; color: #059669; }
+.feed-status.pending { background: #fffbeb; color: #d97706; }
 
 /* ============================================================
    TABLES
    ============================================================ */
-.table-card {
-  background: white;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
+.table-wrapper {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e9edf4;
   overflow: hidden;
   margin-top: 24px;
 }
@@ -1990,61 +1821,62 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 14px 24px;
   border-bottom: 1px solid #f1f5f9;
 }
 
 .table-header h3 {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
   margin: 0;
 }
 
-.table-actions {
+.table-controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.search-input {
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 13px;
+.search-field {
+  padding: 6px 12px;
+  border: 1px solid #e9edf4;
+  border-radius: 6px;
+  font-size: 12px;
   outline: none;
-  min-width: 200px;
+  min-width: 160px;
   transition: all 0.2s;
 }
 
-.search-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+.search-field:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .filter-select {
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 13px;
-  background: white;
+  padding: 6px 12px;
+  border: 1px solid #e9edf4;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #ffffff;
   outline: none;
   cursor: pointer;
 }
 
-.table-responsive {
+.table-scroll {
   overflow-x: auto;
-  padding: 0 24px 24px;
+  padding: 0 24px 20px;
 }
 
-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
 }
 
-thead th {
+.data-table thead th {
   text-align: left;
-  padding: 12px 14px;
-  font-size: 12px;
+  padding: 10px 12px;
+  font-size: 10px;
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
@@ -2052,14 +1884,13 @@ thead th {
   border-bottom: 2px solid #f1f5f9;
 }
 
-tbody td {
-  padding: 12px 14px;
+.data-table tbody td {
+  padding: 10px 12px;
   border-bottom: 1px solid #f8fafc;
-  font-size: 14px;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-tbody tr:hover {
+.data-table tbody tr:hover {
   background: #f8fafc;
 }
 
@@ -2069,96 +1900,89 @@ tbody tr:hover {
   gap: 10px;
 }
 
-.user-avatar-sm, .product-image-sm {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+.user-avatar, .product-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
   object-fit: cover;
 }
 
-.user-name, .product-name {
+.cell-name {
   font-weight: 500;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.user-email, .product-sku {
-  font-size: 12px;
+.cell-sub {
+  font-size: 11px;
   color: #94a3b8;
 }
 
-.status-badge {
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+.status-tag {
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 500;
 }
 
-.status-badge.active { background: #ecfdf5; color: #059669; }
-.status-badge.locked { background: #fef2f2; color: #dc2626; }
-.status-badge.in-stock { background: #ecfdf5; color: #059669; }
-.status-badge.low-stock { background: #fffbeb; color: #d97706; }
-.status-badge.out-of-stock { background: #fef2f2; color: #dc2626; }
+.status-tag.active { background: #ecfdf5; color: #059669; }
+.status-tag.locked { background: #fef2f2; color: #dc2626; }
+.status-tag.in-stock { background: #ecfdf5; color: #059669; }
+.status-tag.low-stock { background: #fffbeb; color: #d97706; }
+.status-tag.out-of-stock { background: #fef2f2; color: #dc2626; }
 
-.category-badge {
-  padding: 2px 10px;
+.category-tag {
+  padding: 1px 8px;
   background: #eef2ff;
-  color: #6366f1;
-  border-radius: 12px;
-  font-size: 12px;
+  color: #4f46e5;
+  border-radius: 8px;
+  font-size: 11px;
 }
 
 .stock-value {
   font-weight: 600;
 }
 
-.stock-value.stock-normal { color: #10b981; }
-.stock-value.stock-low { color: #f59e0b; }
-.stock-value.stock-zero { color: #ef4444; }
+.stock-value.normal { color: #059669; }
+.stock-value.low { color: #d97706; }
+.stock-value.zero { color: #dc2626; }
+
+.loading-row, .empty-row {
+  text-align: center;
+  padding: 30px 0;
+  color: #94a3b8;
+}
+
+.loader {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e9edf4;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 1200px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .quick-stats-row { grid-template-columns: repeat(2, 1fr); }
-  .charts-grid { grid-template-columns: 1fr; }
-  .charts-grid.two-col { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .chart-grid.two-col { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
   .dashboard-container { padding: 16px; }
-  .dashboard-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .dashboard-header { flex-direction: column; gap: 12px; align-items: flex-start; }
   .header-right { width: 100%; flex-wrap: wrap; }
-  .quick-stats-row { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: 1fr; }
-  .dashboard-tabs { flex-wrap: wrap; }
-  .tab-btn { flex: 1 1 45%; font-size: 13px; padding: 10px 12px; }
-  .table-actions { flex-direction: column; width: 100%; }
-  .search-input { min-width: unset; width: 100%; }
-}
-
-/* Thêm style cho loading */
-.loading-cell {
-  text-align: center;
-  padding: 40px 0;
-  color: #94a3b8;
-}
-
-.empty-cell {
-  text-align: center;
-  padding: 40px 0;
-  color: #94a3b8;
-}
-
-.spinner-sm {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #6366f1;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 12px;
-  vertical-align: middle;
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .dashboard-nav { flex-wrap: wrap; }
+  .nav-item { flex: 1 1 45%; font-size: 12px; padding: 10px 12px; }
+  .table-controls { flex-direction: column; width: 100%; }
+  .search-field { min-width: unset; width: 100%; }
+  .section-head { flex-direction: column; gap: 10px; }
 }
 </style>

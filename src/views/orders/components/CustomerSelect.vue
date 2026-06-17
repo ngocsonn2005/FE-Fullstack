@@ -1,6 +1,7 @@
+// CustomerSelect.vue
 <template>
   <div class="customer-select">
-    <label class="form-label fw-bold">👤 Khách hàng</label>
+    <label class="form-label fw-bold">Khách hàng</label>
     <div class="input-group">
       <select class="form-select" v-model="selectedCustomerId" @change="onCustomerChange">
         <option value="">-- Chọn khách hàng --</option>
@@ -9,11 +10,12 @@
         </option>
       </select>
       <button class="btn btn-outline-primary" type="button" @click="openAddCustomerModal">
-        <i class="bi bi-plus-circle"></i> +
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
       </button>
     </div>
 
-    <!-- Hiển thị thông tin khách hàng đã chọn -->
     <div v-if="selectedCustomer" class="customer-info mt-2 p-2 bg-light rounded">
       <div class="row">
         <div class="col-6"><small>Tên: <strong>{{ selectedCustomer.name }}</strong></small></div>
@@ -22,12 +24,11 @@
       </div>
     </div>
 
-    <!-- Modal thêm khách hàng -->
     <div class="modal" :class="{ show: showAddModal }" v-if="showAddModal">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">➕ Thêm khách hàng mới</h5>
+            <h5 class="modal-title">Thêm khách hàng mới</h5>
             <button class="btn-close btn-close-white" @click="showAddModal = false"></button>
           </div>
           <div class="modal-body">
@@ -125,6 +126,27 @@ function openAddCustomerModal() {
 </script>
 
 <style scoped>
-.customer-info { font-size: 13px; }
-.modal.show { display: block; background: rgba(0,0,0,0.5); }
+.customer-select {
+  margin-bottom: 16px;
+}
+
+.customer-info { 
+  font-size: 13px; 
+}
+
+.modal.show { 
+  display: block; 
+  background: rgba(0,0,0,0.5); 
+}
+
+.btn-outline-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.75rem;
+}
+
+.btn-outline-primary svg {
+  stroke: #0d6efd;
+}
 </style>

@@ -43,10 +43,17 @@
               <img v-if="record.imageUrl" :src="record.imageUrl"
                 style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #eee" />
               <div v-else
-                style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;border:1px solid #eee;font-size:12px">
-                No image
+                style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #eee">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="#bbb"/>
+                  <path d="M21 15l-5-5-4 4-3-3-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </div>
             </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'code'">
+            <span style="font-weight:bold;color:#1976d2">{{ record.code }}</span>
           </template>
           <template v-else-if="column.dataIndex === 'costPrice'">
             {{ formatPrice(record.costPrice) }}
@@ -83,7 +90,9 @@
           <div>
             <label style="display:block;margin-bottom:4px;font-weight:500">Mã sản phẩm *</label>
             <input v-model="form.code" placeholder="VD: SP001"
-              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box" />
+              @input="form.code = form.code.toUpperCase()"
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;text-transform:uppercase" />
+            <span style="font-size:11px;color:#999;display:block;margin-top:2px">Mã sẽ tự động viết hoa (VD: sp001 → SP001)</span>
           </div>
           <div>
             <label style="display:block;margin-bottom:4px;font-weight:500">Danh mục *</label>
@@ -399,6 +408,20 @@ const saveProduct = async () => {
   if (!form.value.code || !form.value.name || !form.value.categoryId) {
     formError.value = 'Vui lòng điền đầy đủ thông tin bắt buộc (*)'; return
   }
+
+  // Chuẩn hóa mã sản phẩm: trim + viết hoa toàn bộ
+  form.value.code = form.value.code.trim().toUpperCase()
+
+  // Kiểm tra trùng mã sản phẩm (chặn trường hợp như "SP003" trùng nhau)
+  const codeExists = products.value.some(p =>
+    (p.code || '').toUpperCase() === form.value.code &&
+    (!editingProduct.value || p.id !== editingProduct.value.id)
+  )
+  if (codeExists) {
+    formError.value = `Mã sản phẩm "${form.value.code}" đã tồn tại! Vui lòng chọn mã khác.`
+    return
+  }
+
   saving.value = true
   try {
     if (editingProduct.value) {

@@ -1,3 +1,4 @@
+// ProductSelect.vue
 <template>
   <div class="product-select">
     <div class="row g-2">
@@ -17,7 +18,10 @@
       </div>
       <div class="col-md-2">
         <button class="btn btn-primary w-100" @click="addProduct" :disabled="!canAdd">
-          + Thêm
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Thêm
         </button>
       </div>
     </div>
@@ -49,7 +53,6 @@ async function loadProducts() {
     products.value = res.data;
   } catch (error) {
     console.error('Error loading products:', error);
-    // Mock data
     products.value = [
       { id: 1, name: 'iPhone 15', price: 25000000 },
       { id: 2, name: 'Samsung S24', price: 22000000 },
@@ -69,7 +72,6 @@ function addProduct() {
     price: price.value || product?.price || 0
   });
   
-  // Reset form
   selectedProductId.value = '';
   quantity.value = 1;
   price.value = 0;
@@ -79,3 +81,16 @@ function formatCurrency(value) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
 }
 </script>
+
+<style scoped>
+.product-select {
+  margin-bottom: 16px;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+</style>

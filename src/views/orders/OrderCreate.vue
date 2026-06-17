@@ -1,132 +1,125 @@
+// OrderCreate.vue
 <template>
   <div class="order-create">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1>🛒 Tạo đơn hàng mới</h1>
-      <router-link to="/orders" class="btn btn-secondary">← Quay lại</router-link>
+    <div class="page-header">
+      <div>
+        <router-link to="/app/orders" class="back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Quay lại danh sách
+        </router-link>
+        <h2>Tạo đơn bán hàng mới</h2>
+      </div>
     </div>
 
-    <div class="row">
-      <!-- Thông tin đơn hàng -->
-      <div class="col-md-5">
-        <div class="card mb-4">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">👤 Thông tin khách hàng</h5>
+    <div class="form-card">
+      <div class="section">
+        <h3>Thông tin khách hàng</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Khách hàng <span class="required">*</span></label>
+            <select v-model="form.customerId" @change="onCustomerChange">
+              <option value="">-- Chọn khách hàng --</option>
+              <option v-for="p in customers" :key="p.id" :value="p.id">
+                {{ p.name }} {{ p.phone ? '— ' + p.phone : '' }}
+              </option>
+            </select>
+            <small v-if="selectedCustomer" class="partner-info">
+              <span class="info-icon">📞</span> {{ selectedCustomer.phone }} | {{ selectedCustomer.email }}
+            </small>
           </div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label class="form-label">Chọn khách hàng</label>
-              <select class="form-select" v-model="orderData.customerId" required>
-                <option value="">-- Chọn khách hàng --</option>
-                <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-                  {{ customer.name }} - {{ customer.phone }}
-                </option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Giảm giá (%)</label>
-              <input type="number" class="form-control" v-model="orderData.discountPercent" min="0" max="100">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Thanh toán trước</label>
-              <input type="number" class="form-control" v-model="orderData.paidAmount" min="0">
-            </div>
+          <div class="form-group">
+            <label>Ngày giao hàng</label>
+            <input type="date" v-model="form.deliveryDate" :min="today" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Giảm giá (%)</label>
+            <input type="number" v-model.number="form.discountPercent" min="0" max="100" />
+          </div>
+          <div class="form-group">
+            <label>Số tiền đã trả (đ)</label>
+            <input type="number" v-model.number="form.paidAmount" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ghi chú</label>
+          <textarea v-model="form.note" rows="2" placeholder="Ghi chú thêm..." />
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h3>Danh sách sản phẩm</h3>
+          <button type="button" @click="addItem" class="btn btn-outline btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Thêm sản phẩm
+          </button>
+        </div>
+
+        <div class="items-table">
+          <div class="items-header">
+            <span>Tên sản phẩm</span>
+            <span>Số lượng</span>
+            <span>Đơn giá (đ)</span>
+            <span>Thành tiền</span>
+            <span></span>
+          </div>
+          <div v-for="(item, index) in form.items" :key="index" class="item-row">
+            <input v-model="item.productName" type="text" placeholder="Tên sản phẩm" />
+            <input v-model.number="item.quantity" type="number" min="1" />
+            <input v-model.number="item.unitPrice" type="number" min="0" />
+            <span class="subtotal">{{ formatMoney(item.quantity * item.unitPrice) }}</span>
+            <button type="button" @click="removeItem(index)" class="remove-btn" :disabled="form.items.length === 1">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <!-- Tóm tắt đơn hàng -->
-        <div class="card">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0">💰 Tóm tắt đơn hàng</h5>
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Tạm tính:</span>
+            <span>{{ formatMoney(subtotal) }}</span>
           </div>
-          <div class="card-body">
-            <table class="table table-borderless">
-              <tbody>  <!-- ✅ THÊM DÒNG NÀY -->
-                <tr>
-                  <th>Tổng tiền hàng:</th>
-                  <td class="text-end">{{ formatCurrency(subtotal) }}</td>
-                </tr>
-                <tr>
-                  <th>Giảm giá ({{ orderData.discountPercent }}%):</th>
-                  <td class="text-end text-danger">-{{ formatCurrency(discountAmount) }}</td>
-                </tr>
-                <tr class="fw-bold">
-                  <th>Tổng cộng:</th>
-                  <td class="text-end text-primary">{{ formatCurrency(totalAmount) }}</td>
-                </tr>
-                <tr>
-                  <th>Đã thanh toán:</th>
-                  <td class="text-end text-success">{{ formatCurrency(orderData.paidAmount) }}</td>
-                </tr>
-                <tr class="fw-bold">
-                  <th>Công nợ:</th>
-                  <td class="text-end" :class="debtAmount > 0 ? 'text-danger' : 'text-success'">
-                    {{ formatCurrency(debtAmount) }}
-                  </td>
-                </tr>
-              </tbody>  <!-- ✅ THÊM DÒNG NÀY -->
-            </table>
+          <div class="summary-row" v-if="form.discountPercent > 0">
+            <span>Giảm giá ({{ form.discountPercent }}%):</span>
+            <span class="danger">- {{ formatMoney(discountAmount) }}</span>
+          </div>
+          <div class="summary-row total">
+            <span>Tổng cộng:</span>
+            <span class="total-amount">{{ formatMoney(totalAmount) }}</span>
+          </div>
+          <div class="summary-row" v-if="form.paidAmount > 0">
+            <span>Đã trả:</span>
+            <span class="success">{{ formatMoney(form.paidAmount) }}</span>
+          </div>
+          <div class="summary-row" v-if="debtAmount > 0">
+            <span>Còn nợ:</span>
+            <span class="danger">{{ formatMoney(debtAmount) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Danh sách sản phẩm -->
-      <div class="col-md-7">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0">📦 Sản phẩm</h5>
-          </div>
-          <div class="card-body">
-            <!-- Thêm sản phẩm -->
-            <div class="row g-2 mb-3">
-              <div class="col-md-5">
-                <select class="form-select" v-model="newItem.productId">
-                  <option value="">-- Chọn sản phẩm --</option>
-                  <option v-for="product in products" :key="product.id" :value="product.id">
-                    {{ product.name }} - {{ formatCurrency(product.price) }}
-                  </option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <input type="number" class="form-control" v-model="newItem.quantity" placeholder="Số lượng" min="1">
-              </div>
-              <div class="col-md-2">
-                <input type="number" class="form-control" v-model="newItem.price" placeholder="Đơn giá" min="0">
-              </div>
-              <div class="col-md-2">
-                <button class="btn btn-primary w-100" @click="addItem">+ Thêm</button>
-              </div>
-            </div>
+      <div v-if="error" class="error-box">{{ error }}</div>
 
-            <!-- Bảng sản phẩm đã chọn -->
-            <div class="table-responsive">
-              <table class="table table-sm table-hover">
-                <thead class="table-light">
-                  <tr><th>Sản phẩm</th><th>Số lượng</th><th>Đơn giá</th><th>Thành tiền</th><th></th></tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in orderData.items" :key="index">
-                    <td>{{ getProductName(item.productId) }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>{{ formatCurrency(item.price) }}</td>
-                    <td class="fw-bold">{{ formatCurrency(item.price * item.quantity) }}</td>
-                    <td><button class="btn btn-sm btn-danger" @click="removeItem(index)">✖</button></td>
-                  </tr>
-                  <tr v-if="orderData.items.length === 0">
-                    <td colspan="5" class="text-center text-muted py-3">Chưa có sản phẩm nào</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Nút tạo đơn hàng -->
-            <div class="mt-4">
-              <button class="btn btn-success btn-lg w-100" @click="createOrder" :disabled="loading">
-                <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-                ✅ Hoàn tất đơn hàng
-              </button>
-            </div>
-          </div>
-        </div>
+      <div class="form-actions">
+        <router-link to="/app/orders" class="btn btn-outline">Hủy</router-link>
+        <button type="button" @click="submit" :disabled="loading" class="btn btn-primary">
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+          <template v-else>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </template>
+          Tạo đơn hàng
+        </button>
       </div>
     </div>
   </div>
@@ -135,169 +128,163 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { userApi, orderApi, productApi } from '@/api/axios';
+import { orderApi } from '@/api/axios.js';
 
 const router = useRouter();
-const loading = ref(false);
-
-// Dữ liệu
 const customers = ref([]);
-const products = ref([]);
-const orderData = ref({
+const selectedCustomer = ref(null);
+const loading = ref(false);
+const error = ref('');
+
+const today = new Date().toISOString().split('T')[0];
+
+const form = ref({
   customerId: '',
+  deliveryDate: '',
+  note: '',
   discountPercent: 0,
   paidAmount: 0,
-  items: []
+  items: [{ productName: '', quantity: 1, unitPrice: 0 }]
 });
 
-const newItem = ref({
-  productId: '',
-  quantity: 1,
-  price: 0
-});
+const subtotal = computed(() =>
+  form.value.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+);
+const discountAmount = computed(() => subtotal.value * form.value.discountPercent / 100);
+const totalAmount = computed(() => subtotal.value - discountAmount.value);
+const debtAmount = computed(() => Math.max(0, totalAmount.value - form.value.paidAmount));
 
-// Computed
-const subtotal = computed(() => {
-  return orderData.value.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-});
-
-const discountAmount = computed(() => {
-  return subtotal.value * orderData.value.discountPercent / 100;
-});
-
-const totalAmount = computed(() => {
-  return subtotal.value - discountAmount;
-});
-
-const debtAmount = computed(() => {
-  const debt = totalAmount.value - orderData.value.paidAmount;
-  return debt < 0 ? 0 : debt;
-});
-
-// Methods
-onMounted(async () => {
-  await loadCustomers();
-  await loadProducts();
-});
-
-async function loadCustomers() {
+const fetchCustomers = async () => {
   try {
     const res = await orderApi.get('/customers');
-    customers.value = res.data;
-  } catch (error) {
-    console.error('Error loading customers:', error);
-    customers.value = [{ id: 1, name: 'Khách lẻ', phone: '0123456789' }];
+    customers.value = Array.isArray(res.data) ? res.data : (res.data.data || []);
+  } catch (e) {
+    error.value = 'Không tải được danh sách khách hàng';
   }
-}
+};
 
-async function loadProducts() {
-  try {
-    const res = await productApi.get('/products');
-    products.value = res.data;
-  } catch (error) {
-    console.error('Error loading products:', error);
-    products.value = [
-      { id: 1, name: 'iPhone 15', price: 25000000 },
-      { id: 2, name: 'Samsung S24', price: 22000000 },
-      { id: 3, name: 'Laptop Dell', price: 18000000 }
-    ];
-  }
-}
+const onCustomerChange = () => {
+  selectedCustomer.value = customers.value.find(p => p.id == form.value.customerId) || null;
+};
 
-function getProductName(productId) {
-  const product = products.value.find(p => p.id === productId);
-  return product?.name || `SP-${productId}`;
-}
+const addItem = () => {
+  form.value.items.push({ productName: '', quantity: 1, unitPrice: 0 });
+};
 
-function addItem() {
-  if (!newItem.value.productId || newItem.value.quantity <= 0 || newItem.value.price <= 0) {
-    alert('Vui lòng nhập đầy đủ thông tin sản phẩm!');
+const removeItem = (index) => {
+  if (form.value.items.length > 1) form.value.items.splice(index, 1);
+};
+
+const submit = async () => {
+  error.value = '';
+
+  if (!form.value.customerId) {
+    error.value = 'Vui lòng chọn khách hàng';
     return;
   }
-  checkStockAndAdd();
-}
 
-async function checkStockAndAdd() {
-  try {
-    const checkResult = await productApi.post('/inventory/check', {
-      productId: newItem.value.productId,
-      quantity: newItem.value.quantity
-    });
-    
-    if (checkResult.data.inStock) {
-      addItemToOrder();
-    } else {
-      alert(`Sản phẩm ${getProductName(newItem.value.productId)} không đủ hàng!`);
-    }
-  } catch (error) {
-    console.warn('Product Service not available, skipping stock check');
-    addItemToOrder();
-  }
-}
-
-function addItemToOrder() {
-  orderData.value.items.push({
-    productId: newItem.value.productId,
-    quantity: newItem.value.quantity,
-    price: newItem.value.price
-  });
-  
-  newItem.value = { productId: '', quantity: 1, price: 0 };
-}
-
-function removeItem(index) {
-  orderData.value.items.splice(index, 1);
-}
-
-async function createOrder() {
-  if (!orderData.value.customerId) {
-    alert('Vui lòng chọn khách hàng!');
+  const validItems = form.value.items.filter(i => i.productName && i.quantity > 0 && i.unitPrice > 0);
+  if (!validItems.length) {
+    error.value = 'Vui lòng thêm ít nhất một sản phẩm hợp lệ';
     return;
   }
-  
-  if (orderData.value.items.length === 0) {
-    alert('Vui lòng thêm sản phẩm!');
-    return;
-  }
-  
+
   loading.value = true;
-  
   try {
     const payload = {
-      customerId: orderData.value.customerId,
-      paidAmount: orderData.value.paidAmount,
-      discountPercent: orderData.value.discountPercent,
-      items: orderData.value.items.map(item => ({
-        productId: item.productId,
+      customerId: Number(form.value.customerId),
+      partnerId: Number(form.value.customerId),
+      paidAmount: form.value.paidAmount,
+      discountPercent: form.value.discountPercent,
+      items: validItems.map((item, index) => ({
+        productId: index + 1,
+        productName: item.productName,
         quantity: item.quantity,
-        price: item.price
+        price: item.unitPrice,
+        unitPrice: item.unitPrice
       }))
     };
-    
-    console.log('Sending order:', payload);
-    
-    const response = await orderApi.post('/orders', payload);
-    
-    console.log('Order created:', response.data);
-    
-    alert('✅ Tạo đơn hàng thành công!');
-    router.push('/orders');
-  } catch (error) {
-    console.error('Error creating order:', error);
-    alert(`Lỗi: ${error.response?.data || 'Không thể tạo đơn hàng!'}`);
+
+    const res = await orderApi.post('/orders', payload);
+    const order = res.data;
+    alert('Tạo đơn thành công! Mã đơn: #' + (order.id || ''));
+    router.push('/app/orders');
+  } catch (e) {
+    error.value = e.response?.data?.message || e.message;
   } finally {
     loading.value = false;
   }
-}
+};
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
-}
+const formatMoney = (n) => Number(n || 0).toLocaleString('vi-VN') + ' đ';
+
+onMounted(fetchCustomers);
 </script>
 
 <style scoped>
-.order-create { padding: 20px; }
-.card { border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
-.card-header { border-radius: 12px 12px 0 0; }
-.btn-lg { padding: 12px; font-size: 16px; }
+.order-create { padding: 24px; }
+.page-header { margin-bottom: 20px; }
+.back-link { 
+  color: #2563eb; 
+  font-size: 13px; 
+  text-decoration: none; 
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px; 
+}
+.page-header h2 { margin: 0; font-size: 20px; }
+.form-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+.section { border: 1px solid #f3f4f6; border-radius: 8px; padding: 20px; }
+.section h3 { margin: 0 0 16px; font-size: 14px; font-weight: 600; color: #111827; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-header h3 { margin: 0; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+label { font-size: 12px; font-weight: 600; color: #6b7280; }
+.required { color: #dc2626; }
+input, select, textarea { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+.partner-info { color: #6b7280; font-size: 12px; }
+.items-table { display: flex; flex-direction: column; gap: 6px; }
+.items-header { display: grid; grid-template-columns: 3fr 1fr 2fr 2fr 40px; gap: 8px; padding: 6px 0; font-size: 11px; font-weight: 600; color: #6b7280; }
+.item-row { display: grid; grid-template-columns: 3fr 1fr 2fr 2fr 40px; gap: 8px; align-items: center; }
+.subtotal { font-weight: 600; font-size: 13px; }
+.remove-btn { 
+  background: #fee2e2; 
+  color: #dc2626; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  width: 32px; 
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.summary-box { margin-top: 16px; background: #f9fafb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 13px; }
+.summary-row.total { border-top: 1px solid #e5e7eb; padding-top: 10px; font-weight: 700; font-size: 15px; }
+.total-amount { color: #2563eb; }
+.success { color: #16a34a; }
+.danger { color: #dc2626; }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.btn { 
+  padding: 8px 18px; 
+  border-radius: 6px; 
+  border: none; 
+  cursor: pointer; 
+  font-size: 13px; 
+  font-weight: 600; 
+  text-decoration: none; 
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-outline { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.error-box { background: #fee2e2; color: #b91c1c; padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+.spinner-border { width: 1rem; height: 1rem; }
 </style>
