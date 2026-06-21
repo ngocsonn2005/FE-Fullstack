@@ -195,7 +195,7 @@
             </div>
           </div>
 
-          <!-- ✅ USER DROPDOWN - ĐẢM BẢO HOẠT ĐỘNG -->
+          <!-- USER DROPDOWN -->
           <div class="user-dropdown" ref="userDropdownRef">
             <div class="user-trigger" @click.stop="toggleUserMenu">
               <img :src="userAvatar" alt="Avatar" @error="handleAvatarError">
@@ -208,7 +208,6 @@
               </svg>
             </div>
 
-            <!-- ✅ DÙNG v-if ĐỂ ĐẢM BẢO RENDER -->
             <div class="dropdown-menu" v-if="showUserMenu" @click.stop>
               <div class="dropdown-header">
                 <img :src="userAvatar" alt="Avatar">
@@ -256,10 +255,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'; // ✅ Thêm watch vào import
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 import { productApi } from '@/api/axios';
+import accountStatusService from '@/services/AccountStatusService';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -293,6 +293,14 @@ const currentPageTitle = computed(() => {
   return titles[route.path] || 'Trang chủ';
 });
 
+// ✅ Thêm watcher để kiểm tra khi chuyển trang
+watch(() => route.path, () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    accountStatusService.checkStatus();
+  }
+});
+
 async function loadLowStockProducts() {
   try {
     const res = await productApi.get('/products');
@@ -314,7 +322,6 @@ function toggleSidebar() { isCollapsed.value = !isCollapsed.value; }
 function toggleMobileSidebar() { mobileSidebarOpen.value = !mobileSidebarOpen.value; }
 function closeMobileSidebar() { mobileSidebarOpen.value = false; }
 
-// ✅ SỬA: Đảm bảo toggle hoạt động
 function toggleUserMenu(e) {
   if (e) e.stopPropagation();
   showUserMenu.value = !showUserMenu.value;
@@ -339,7 +346,6 @@ function logout() {
   router.push('/');
 }
 
-// ✅ SỬA: Dùng ref thay vì querySelector
 function handleClickOutside(e) {
   if (userDropdownRef.value && !userDropdownRef.value.contains(e.target)) {
     showUserMenu.value = false;
@@ -348,7 +354,6 @@ function handleClickOutside(e) {
 
 onMounted(() => {
   loadLowStockProducts();
-  // ✅ Dùng setTimeout để tránh event listener bị gọi ngay
   setTimeout(() => {
     document.addEventListener('click', handleClickOutside);
   }, 100);
@@ -525,7 +530,7 @@ body {
 .notif-footer button:hover { text-decoration: underline; }
 .dropdown-divider { height: 1px; background: #f1f5f9; }
 
-/* ✅ USER DROPDOWN - FIX */
+/* USER DROPDOWN */
 .user-dropdown { position: relative; z-index: 1001; }
 .user-trigger {
   display: flex; align-items: center; gap: 10px;
@@ -541,7 +546,6 @@ body {
 .chevron-icon { width: 16px; height: 16px; color: #94a3b8; transition: transform 0.2s; }
 .chevron-icon.rotated { transform: rotate(180deg); }
 
-/* ✅ DROPDOWN MENU - ĐẢM BẢO HIỂN THỊ */
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 10px);

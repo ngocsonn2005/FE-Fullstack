@@ -635,6 +635,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
 import RoleManagement from './RoleManagement.vue';
+import accountStatusService from '@/services/AccountStatusService';
 
 // State
 const activeTab = ref('active');
@@ -812,9 +813,18 @@ async function toggleLockUser(user) {
     try {
       const endpoint = user.isLocked ? 'unlock' : 'lock';
       await api.post(`/users/${user.id}/${endpoint}`);
+      
       await loadData();
       await loadStatistics();
+      
+      // ✅ Nếu là khóa tài khoản, thông báo sẽ được gửi realtime
       showToast(`Đã ${action} tài khoản "${user.username}"!`, 'success');
+      
+      // ✅ Nếu là khóa, có thể trigger kiểm tra ngay
+      if (!user.isLocked) {
+        // Vừa khóa, user sẽ bị kick sau tối đa 8s
+        console.log(`🔒 Account ${user.username} locked, will be kicked soon`);
+      }
     } catch (error) {
       console.error('Error toggling lock:', error);
       showToast(`Không thể ${action} tài khoản!`, 'error');

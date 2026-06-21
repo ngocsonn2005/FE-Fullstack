@@ -393,6 +393,7 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
+import accountStatusService from '@/services/AccountStatusService';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -509,20 +510,15 @@ const handleLogin = async () => {
 
     const data = response.data;
 
-    // ✅ Kiểm tra tài khoản bị khóa (nếu backend trả về isLocked)
     if (data.isLocked) {
-      errorMessage.value = 'Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
+      errorMessage.value = '🔒 Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
       loading.value = false;
       return;
     }
 
-    // ✅ Kiểm tra yêu cầu đổi mật khẩu
     if (data.requirePasswordChange) {
-      // Lưu token tạm thời và thông tin user
       tempToken.value = data.token;
       tempUserData.value = data;
-      
-      // Hiển thị modal đổi mật khẩu
       showForcePasswordModal.value = true;
       forceError.value = '';
       forcePasswordForm.value = {
@@ -533,7 +529,6 @@ const handleLogin = async () => {
       return;
     }
 
-    // Đăng nhập bình thường
     saveAuthData(data);
 
     if (rememberMe.value) {
@@ -542,12 +537,14 @@ const handleLogin = async () => {
       localStorage.removeItem('rememberMe');
     }
 
+    // ✅ Khởi tạo service kiểm tra trạng thái sau khi đăng nhập
+    accountStatusService.startChecking(8000);
+
     router.push('/app/dashboard');
   } catch (error) {
-    // ✅ Kiểm tra nếu lỗi là do tài khoản bị khóa từ backend
     const errorMsg = error.response?.data?.message || '';
     if (errorMsg.includes('khóa') || errorMsg.includes('lock')) {
-      errorMessage.value = 'Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
+      errorMessage.value = '🔒 Tài khoản đã bị khóa. Vui lòng liên hệ Admin để mở khóa!';
     } else {
       errorMessage.value = errorMsg || 'Đăng nhập thất bại! Kiểm tra lại tài khoản hoặc mật khẩu.';
     }
@@ -723,6 +720,7 @@ const handleGoogleAuth = () => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || api.defaults.baseURL;
   window.location.href = `${baseUrl}/auth/google?prompt=select_account`;
 };
+
 </script>
 
 <style scoped>
