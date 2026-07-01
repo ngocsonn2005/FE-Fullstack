@@ -3,7 +3,7 @@ import router from '@/router'; // ✅ Thêm import này
 
 // Cấu hình API cho từng service
 export const userApi = axios.create({
-  baseURL: 'http://192.168.1.103:5000/api',
+  baseURL: 'http://26.3.152.29:5000/api',
   headers: { 'Content-Type': 'application/json' }
 });
 

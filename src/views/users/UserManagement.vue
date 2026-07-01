@@ -282,9 +282,14 @@
         </table>
       </div>
       
-      <!-- Active Users Pagination -->
-      <div v-if="totalActivePages > 1" class="pagination-wrapper">
+      <!-- Active Users Pagination - Luôn hiển thị khi có dữ liệu -->
+      <div v-if="filteredUsers.length > 0" class="pagination-wrapper">
         <div class="pagination-info">
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           Hiển thị {{ ((activeCurrentPage - 1) * itemsPerPage) + 1 }} - {{ Math.min(activeCurrentPage * itemsPerPage, filteredUsers.length) }} / {{ filteredUsers.length }}
         </div>
         <div class="pagination">
@@ -292,6 +297,7 @@
             class="pagination-btn" 
             :disabled="activeCurrentPage === 1"
             @click="goToActivePage(activeCurrentPage - 1)"
+            title="Trang trước"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="15 18 9 12 15 6"/>
@@ -311,8 +317,9 @@
           
           <button 
             class="pagination-btn" 
-            :disabled="activeCurrentPage === totalActivePages"
+            :disabled="activeCurrentPage === totalActivePages || filteredUsers.length === 0"
             @click="goToActivePage(activeCurrentPage + 1)"
+            title="Trang sau"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -421,9 +428,14 @@
         </table>
       </div>
       
-      <!-- Deleted Users Pagination -->
-      <div v-if="totalDeletedPages > 1" class="pagination-wrapper">
+      <!-- Deleted Users Pagination - Luôn hiển thị khi có dữ liệu -->
+      <div v-if="deletedUsers.length > 0" class="pagination-wrapper">
         <div class="pagination-info">
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           Hiển thị {{ ((deletedCurrentPage - 1) * itemsPerPage) + 1 }} - {{ Math.min(deletedCurrentPage * itemsPerPage, deletedUsers.length) }} / {{ deletedUsers.length }}
         </div>
         <div class="pagination">
@@ -431,6 +443,7 @@
             class="pagination-btn" 
             :disabled="deletedCurrentPage === 1"
             @click="goToDeletedPage(deletedCurrentPage - 1)"
+            title="Trang trước"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="15 18 9 12 15 6"/>
@@ -450,8 +463,9 @@
           
           <button 
             class="pagination-btn" 
-            :disabled="deletedCurrentPage === totalDeletedPages"
+            :disabled="deletedCurrentPage === totalDeletedPages || deletedUsers.length === 0"
             @click="goToDeletedPage(deletedCurrentPage + 1)"
+            title="Trang sau"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -470,7 +484,7 @@
       </div>
     </div>
 
-    <!-- ✅ MODAL ADD/EDIT - ĐÃ SỬA LẠI -->
+    <!-- MODAL ADD/EDIT -->
     <div class="modal-overlay" :class="{ show: showDialog }" v-if="showDialog" @click.self="closeModal">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -635,7 +649,6 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/api/axios';
 import RoleManagement from './RoleManagement.vue';
-import accountStatusService from '@/services/AccountStatusService';
 
 // State
 const activeTab = ref('active');
@@ -817,14 +830,7 @@ async function toggleLockUser(user) {
       await loadData();
       await loadStatistics();
       
-      // ✅ Nếu là khóa tài khoản, thông báo sẽ được gửi realtime
       showToast(`Đã ${action} tài khoản "${user.username}"!`, 'success');
-      
-      // ✅ Nếu là khóa, có thể trigger kiểm tra ngay
-      if (!user.isLocked) {
-        // Vừa khóa, user sẽ bị kick sau tối đa 8s
-        console.log(`🔒 Account ${user.username} locked, will be kicked soon`);
-      }
     } catch (error) {
       console.error('Error toggling lock:', error);
       showToast(`Không thể ${action} tài khoản!`, 'error');
@@ -1704,9 +1710,7 @@ tbody tr:hover {
   font-size: 14px;
 }
 
-/* ============================================================
-   MODAL - ĐÃ SỬA LẠI
-   ============================================================ */
+/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1795,7 +1799,6 @@ tbody tr:hover {
   height: 18px;
 }
 
-/* ✅ Phần body có thể cuộn */
 .modal-body-scroll {
   flex: 1;
   overflow-y: auto;
@@ -1999,7 +2002,7 @@ tbody tr:hover {
   align-items: center;
   padding: 16px 24px;
   border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   flex-wrap: wrap;
   gap: 12px;
   border-radius: 0 0 16px 16px;
@@ -2015,6 +2018,13 @@ tbody tr:hover {
   padding: 4px 14px;
   border-radius: 16px;
   font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.info-icon {
+  width: 16px;
+  height: 16px;
+  color: #667eea;
 }
 
 .pagination {
@@ -2039,6 +2049,12 @@ tbody tr:hover {
   font-size: 13px;
   font-weight: 500;
   color: #4b5563;
+}
+
+.pagination-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
 }
 
 .pagination-btn:hover:not(:disabled):not(.dots) {
@@ -2080,6 +2096,7 @@ tbody tr:hover {
   background: white;
   padding: 4px 12px;
   border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .pagination-page-size select {
@@ -2091,6 +2108,16 @@ tbody tr:hover {
   font-size: 12px;
   font-weight: 500;
   outline: none;
+  transition: all 0.2s;
+}
+
+.pagination-page-size select:hover {
+  border-color: #667eea;
+}
+
+.pagination-page-size select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 /* Toast */
